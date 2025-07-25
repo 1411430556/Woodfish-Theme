@@ -92,5 +92,6 @@
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
-  }
+  },
+  "icon": "images/head.jpg"
 }
