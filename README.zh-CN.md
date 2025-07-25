@@ -1,12 +1,5 @@
 # Woodfish Theme
 
-请选择您的语言版本：
-
-- 中文版：[README.zh-CN.md](README.zh-CN.md)  
-- English: [README.en.md](README.en.md)
-
-# Woodfish Theme
-
 一个优雅的 VSCode 渐变主题，提供现代化的视觉体验和舒适的编程环境。
 
 ![Woodfish Theme](https://img.shields.io/badge/version-1.0.0-blue.svg)  

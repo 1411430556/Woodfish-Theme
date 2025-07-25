@@ -49,6 +49,11 @@
         "command": "woodfish-theme.disable",
         "title": "禁用 Woodfish Theme",
         "category": "Woodfish Theme"
+      },
+      {
+        "command": "woodfish-theme.reload",
+        "title": "重新加载 Woodfish Theme",
+        "category": "Woodfish Theme"
       }
     ],
     "themes": [
