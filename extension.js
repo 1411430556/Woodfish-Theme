@@ -124,12 +124,138 @@ function applyTheme() {
       .join('')
     
     // 读取主题样式文件
-    const themeStylePath = path.join(__dirname, 'themes', 'woodfish-theme.html')
+    const themeStylePath = path.join(__dirname, 'themes', 'woodfish-theme.css')
     let themeStylesHtml = ''
     
     if (fs.existsSync(themeStylePath)) {
-      themeStylesHtml = fs.readFileSync(themeStylePath, 'utf-8')
+      const cssContent = fs.readFileSync(themeStylePath, 'utf-8')
+      themeStylesHtml = `<style ${EXTENSION_CONFIG.tagAttribute}>${cssContent}</style>`
     }
+const path = require('path')
+const fs = require('fs')
+const vscode = require('vscode')
+
+/**
+ * Woodfish Theme - 原创 VSCode 主题扩展
+ * 作者：Woodfish
+ * 许可证：MIT
+ */
+
+// 扩展配置
+const EXTENSION_CONFIG = {
+  name: 'woodfish-theme',
+  displayName: 'Woodfish Theme',
+  tagAttribute: 'data-woodfish-theme',
+  versionKey: 'woodfish-theme-vscode-version',
+  configSection: 'woodfishTheme'
+}
+
+// 全局上下文
+let extensionContext = null
+
+/**
+ * 获取 VSCode 工作台 HTML 文件路径
+ * 支持多种 VSCode 版本和 Cursor IDE
+ */
+function getWorkbenchHtmlPath() {
+  const appDirectory = require.main ? path.dirname(require.main.filename) : globalThis._VSCODE_FILE_ROOT
+  const baseDirectory = path.join(appDirectory, 'vs', 'code')
+  
+  const possiblePaths = [
+    path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.html'),
+    path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench-apc-extension.html'),
+    path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.esm.html'),
+    path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.esm.html'),
+    path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.html')
+  ]
+  
+  for (const htmlPath of possiblePaths) {
+    if (fs.existsSync(htmlPath)) {
+      return htmlPath
+    }
+  }
+  
+  return null
+}
+
+/**
+ * 显示信息消息
+ */
+function showInfoMessage(message) {
+  vscode.window.showInformationMessage(message)
+}
+
+/**
+ * 显示重启提示消息
+ */
+function showReloadPrompt(message) {
+  const reloadAction = '重新加载窗口'
+  vscode.window
+    .showInformationMessage(message, reloadAction)
+    .then(selection => {
+      if (selection === reloadAction) {
+        vscode.commands.executeCommand('workbench.action.reloadWindow')
+      }
+    })
+}
+
+/**
+ * 清理 HTML 文件中的主题样式
+ */
+function cleanThemeStyles(htmlContent) {
+  const styleRegex = new RegExp(
+    `<style[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>.*?</style>|<script[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>.*?</script>`,
+    'gs'
+  )
+  return htmlContent.replace(styleRegex, '')
+}
+
+/**
+ * 读取并清理 HTML 文件
+ */
+function getCleanHtmlContent() {
+  const htmlPath = getWorkbenchHtmlPath()
+  
+  if (!htmlPath || !fs.existsSync(htmlPath)) {
+    showInfoMessage('Woodfish Theme 不支持当前平台或 VSCode 版本')
+    return null
+  }
+  
+  try {
+    const htmlContent = fs.readFileSync(htmlPath, 'utf-8')
+    return cleanThemeStyles(htmlContent)
+  } catch (error) {
+    showInfoMessage(`读取 HTML 文件失败: ${error.message}`)
+    return null
+  }
+}
+
+/**
+ * 应用主题样式
+ */
+function applyTheme() {
+  const htmlPath = getWorkbenchHtmlPath()
+  const cleanHtml = getCleanHtmlContent()
+  
+  if (!cleanHtml) {
+    return
+  }
+  
+  try {
+    // 获取用户配置
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const customStyles = themeConfiguration.get('customStyles', [])
+    
+    // 生成自定义样式 HTML
+    const customStylesHtml = customStyles
+      .filter(style => style.enabled)
+      .map(style => `
+        <style ${EXTENSION_CONFIG.tagAttribute}>
+          ${style.css}
+        </style>
+      `)
+      .join('')
+    
     
     // 组合最终的 HTML 内容
     const finalHtml = cleanHtml.replace(
