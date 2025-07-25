@@ -53,14 +53,9 @@
     ],
     "themes": [
       {
-        "label": "Woodfish Dark",
+        "label": "Woodfish Theme",
         "uiTheme": "vs-dark",
         "path": "./themes/woodfish-dark-color-theme.json"
-      },
-      {
-        "label": "Woodfish Light",
-        "uiTheme": "vs",
-        "path": "./themes/woodfish-light-color-theme.json"
       }
     ],
     "configuration": {
