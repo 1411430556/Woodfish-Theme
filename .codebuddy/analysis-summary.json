@@ -1,0 +1,1 @@
+{"title":"VSCode主题扩展项目GitHub上传","features":["Git仓库初始化","代码提交管理","远程仓库推送","项目文档管理"],"tech":{"tools":"Git, GitHub","commands":"git init, git add, git commit, git remote, git push"},"design":"无需UI设计，纯命令行操作","plan":{"初始化本地Git仓库":"done","配置Git用户信息":"doing","添加项目文件到暂存区":"holding","创建初始提交":"holding","连接远程GitHub仓库":"holding","推送代码到远程仓库":"holding","验证上传结果":"holding"}}

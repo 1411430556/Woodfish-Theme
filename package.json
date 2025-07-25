@@ -1,0 +1,126 @@
+{
+  "name": "woodfish-theme",
+  "displayName": "Woodfish Theme",
+  "description": "一个优雅的 VSCode 渐变主题，提供现代化的视觉体验",
+  "version": "1.0.0",
+  "publisher": "woodfish",
+  "author": {
+    "name": "Woodfish",
+    "email": "woodfish@example.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/woodfish/Woodfish-Theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/woodfish/Woodfish-Theme.git"
+  },
+  "bugs": {
+    "url": "https://github.com/woodfish/Woodfish-Theme/issues"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "keywords": [
+    "theme",
+    "gradient",
+    "dark",
+    "modern",
+    "elegant",
+    "woodfish",
+    "ui",
+    "color-theme"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "woodfish-theme.enable",
+        "title": "启用 Woodfish Theme",
+        "category": "Woodfish Theme"
+      },
+      {
+        "command": "woodfish-theme.disable",
+        "title": "禁用 Woodfish Theme",
+        "category": "Woodfish Theme"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Woodfish Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/woodfish-dark-color-theme.json"
+      },
+      {
+        "label": "Woodfish Light",
+        "uiTheme": "vs",
+        "path": "./themes/woodfish-light-color-theme.json"
+      }
+    ],
+    "configuration": {
+      "title": "Woodfish Theme",
+      "properties": {
+        "woodfishTheme.customStyles": {
+          "type": "array",
+          "default": [],
+          "description": "自定义 CSS 样式配置",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "样式名称"
+              },
+              "css": {
+                "type": "string",
+                "description": "CSS 代码"
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "是否启用此样式",
+                "default": true
+              }
+            }
+          }
+        },
+        "woodfishTheme.autoApplyOnUpdate": {
+          "type": "boolean",
+          "default": true,
+          "description": "VSCode 更新后自动重新应用主题"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js",
+    "vscode:prepublish": "npm run package",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package-extension": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0",
+    "@vscode/test-electron": "^2.2.0",
+    "vsce": "^2.15.0"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  }
+}
