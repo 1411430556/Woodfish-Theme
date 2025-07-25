@@ -217,7 +217,9 @@ div.sticky-widget {
 }
 
 div.monaco-hover {
-  --vscode-editorHoverWidget-background: #ffffff !important;
+  --vscode-editorHoverWidget-background: rgba(37, 48, 67, 0.85) !important;
+  backdrop-filter: blur(15px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important; /* 添加柔和的阴影 */
   border-radius: 4px !important; /* 圆角效果 */
 }

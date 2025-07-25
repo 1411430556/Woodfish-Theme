@@ -2,7 +2,7 @@
   "name": "woodfish-theme",
   "displayName": "Woodfish Theme",
   "description": "一个美观的 VSCode 主题扩展，提供优雅的界面定制",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "publisher": "zhongjun",
   "author": {
     "name": "Woodfish"
