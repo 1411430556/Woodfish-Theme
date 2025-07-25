@@ -12,6 +12,28 @@
 - 自定义颜色选择器
 - 主题预设管理
 
+## [2.1.0] - 2024-12-19
+
+### 新增
+- ✨ 添加了颜色主题支持，现在可以在 VSCode 主题列表中直接选择 "Woodfish Dark"
+- 🎨 修复了主题配置问题，确保主题能正确显示在 VSCode 中
+- 📝 更新了主题文件名称，从 "BeardedTheme Arc" 改为 "Woodfish Dark"
+
+### 修复
+- 🐛 修复了 package.json 中缺少 themes 配置导致主题不显示的问题
+- 🔧 修正了主题文件中的名称不匹配问题
+
+### 更改
+- 📦 版本号从 2.0.1 升级到 2.1.0
+- 🔄 现在支持两种使用方式：作为颜色主题和作为 UI 自定义主题
+# 更新日志
+
+本文件记录了 Woodfish Theme 项目的所有重要更改。
+
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
+并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+
 ## [1.0.0] - 2024-01-01
 
 ### 新增
