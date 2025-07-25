@@ -133,23 +133,6 @@ Woodfish Theme 已在以下环境中测试通过：
 }
 ```
 
-## 🎨 主题预览
-
-### Woodfish Dark 主题  
-![Woodfish Dark Theme Preview](images/preview-dark.png)
-
-### Woodfish Light 主题  
-![Woodfish Light Theme Preview](images/preview-light.png)
-
-#### 彩虹光标  
-![Rainbow Cursor](images/rainbow-cursor.gif)
-
-#### 代码发光效果  
-![Glowing Code](images/glowing-code.png)
-
-#### 渐变语法高亮  
-![Gradient Syntax](images/gradient-syntax.png)
-
 ## 🛠️ 开发
 
 ### 环境要求
