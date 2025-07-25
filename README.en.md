@@ -126,23 +126,6 @@ In VSCode settings you can customize Woodfish Theme:
 }
 ```
 
-## 🎨 Theme Preview
-
-### Woodfish Dark Theme  
-![Woodfish Dark Theme Preview](images/preview-dark.png)
-
-### Woodfish Light Theme  
-![Woodfish Light Theme Preview](images/preview-light.png)
-
-#### Rainbow Cursor  
-![Rainbow Cursor](images/rainbow-cursor.gif)
-
-#### Glowing Code  
-![Glowing Code](images/glowing-code.png)
-
-#### Gradient Syntax Highlighting  
-![Gradient Syntax](images/gradient-syntax.png)
-
 ## 🛠️ Development
 
 ### Requirements
