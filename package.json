@@ -1,8 +1,8 @@
 {
   "name": "woodfish-theme",
   "displayName": "Woodfish Theme",
-  "description": "一个美观的 VSCode 主题扩展，提供优雅的界面定制",
-  "version": "2.1.1",
+  "description": "🌈 Woodfish 彩虹主题 - 具有发光效果、渐变色彩和动画的VSCode主题扩展",
+  "version": "2.2.0",
   "publisher": "zhongjun",
   "author": {
     "name": "Woodfish"
@@ -19,8 +19,17 @@
     "theme",
     "woodfish",
     "dark",
+    "rainbow",
+    "gradient",
+    "glow",
+    "animation",
+    "cursor",
+    "transparent",
     "ui",
-    "custom"
+    "custom",
+    "colorful",
+    "neon",
+    "cyberpunk"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -79,7 +88,11 @@
   "scripts": {
     "vscode:prepublish": "echo 'Preparing for publish...'",
     "lint": "eslint .",
-    "test": "echo 'No tests specified'"
+    "test": "echo 'No tests specified'",
+    "pre-publish": "node scripts/pre-publish-check.js",
+    "publish": "node scripts/publish.js",
+    "package": "vsce package",
+    "clean": "rimraf *.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",

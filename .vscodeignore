@@ -1,23 +1,44 @@
+# 开发文件
 .vscode/**
 .vscode-test/**
-out/test/**
-src/**
-.gitignore
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/tslint.json
-**/*.map
-**/*.ts
 node_modules/**
-*.vsix
+src/**
+scripts/**
+.codebuddy/**
+
+# 构建输出
+out/**
+dist/**
+
+# 测试文件
+test/**
+**/*.test.js
+
+# 配置文件
+.gitignore
 .env*
-*.log
-*.md
+tsconfig*.json
+**/.eslintrc.json
+vsc-extension-quickstart.md
+
+# 源码文件
+**/*.ts
+**/*.map
+
+# 临时文件
+**/*.vsix
+**/*.log
+**/*.tmp
+
+# 文档草稿
+**/README.md
 !README.md
-publish.js
-快速发布脚本.bat
-权限问题解决方案.md
-发布指南.md
-发布命令.md
-发布成功指南.md
-.env.example
+VSCode*.md
+
+# 测试CSS文件
+themes/woodfish-theme-test.css
+themes/README.md
+
+# Git相关
+.git/**
+.github/**
