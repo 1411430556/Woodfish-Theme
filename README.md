@@ -2,10 +2,11 @@
 
 > 一个具有发光效果、渐变色彩和动画的VSCode彩虹主题扩展
 
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/woodfish/woodfish-theme)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VSCode](https://img.shields.io/badge/VSCode-%5E1.74.0-blue.svg)](https://code.visualstudio.com/)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/zhongjun.woodfish-theme)](https://marketplace.visualstudio.com/items?itemName=zhongjun.woodfish-theme)
+[![GitHub Release](https://img.shields.io/github/v/release/woodfishhhh/Woodfish-Theme)](https://github.com/woodfishhhh/Woodfish-Theme/releases)
 
 ## ✨ 特色功能
 
@@ -36,7 +37,7 @@
 
 ```bash
 # 下载并安装VSIX文件
-code --install-extension woodfish-theme-2.2.0.vsix
+code --install-extension woodfish-theme-2.3.0.vsix
 ```
 
 ## 🚀 使用方法
@@ -122,8 +123,8 @@ code --install-extension woodfish-theme-2.2.0.vsix
 
 ```bash
 # 克隆仓库
-git clone https://github.com/woodfish/woodfish-theme.git
-cd woodfish-theme
+git clone https://github.com/woodfishhhh/Woodfish-Theme.git
+cd Woodfish-Theme
 
 # 安装依赖
 npm install
@@ -158,6 +159,20 @@ npm run package
 
 ## 📝 更新日志
 
+### [2.3.0] - 2024-12-19
+
+#### 新增
+- 🚀 版本更新到2.3.0
+- 📦 优化发布流程和脚本
+- ✨ 完善自动化发布工具
+- 📝 更新项目文档
+- 🎯 提升整体稳定性
+
+#### 改进
+- 🔧 完善了自动化发布工具
+- 📦 优化了VSCode市场发布流程
+- 🌐 改进了GitHub发布流程
+
 ### [2.2.0] - 2024-12-XX
 
 #### 新增
@@ -173,17 +188,18 @@ npm run package
 - 动画流畅度提升
 - 颜色对比度调整
 
-### [2.1.1] - 2024-XX-XX
-- 修复已知问题
-- 优化主题配置
+### [2.1.1] - 2024-12-19
+- 💫 为悬浮提示添加了毛玻璃背景效果
+- 🐛 修复了悬浮菜单位置偏移问题
+- 🎯 优化了悬浮提示的视觉效果
 
 ## 🐛 问题反馈
 
 遇到问题？请：
 
-1. 查看 [常见问题](https://github.com/woodfish/woodfish-theme/wiki/FAQ)
-2. 搜索现有 [Issues](https://github.com/woodfish/woodfish-theme/issues)
-3. [创建新Issue](https://github.com/woodfish/woodfish-theme/issues/new)
+1. 查看 [常见问题](https://github.com/woodfishhhh/Woodfish-Theme/wiki/FAQ)
+2. 搜索现有 [Issues](https://github.com/woodfishhhh/Woodfish-Theme/issues)
+3. [创建新Issue](https://github.com/woodfishhhh/Woodfish-Theme/issues/new)
 
 ## 📄 许可证
 
@@ -198,8 +214,8 @@ npm run package
 ## 📞 联系方式
 
 - 作者: Woodfish
-- GitHub: [@woodfish](https://github.com/woodfish)
-- Issues: [问题反馈](https://github.com/woodfish/woodfish-theme/issues)
+- GitHub: [@woodfishhhh](https://github.com/woodfishhhh)
+- Issues: [问题反馈](https://github.com/woodfishhhh/Woodfish-Theme/issues)
 
 ---
 
