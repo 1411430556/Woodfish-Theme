@@ -46,17 +46,17 @@
     "commands": [
       {
         "command": "woodfish-theme.enable",
-        "title": "启用 Woodfish Theme",
+        "title": "开启 Woodfish 主题",
         "category": "Woodfish Theme"
       },
       {
         "command": "woodfish-theme.disable",
-        "title": "禁用 Woodfish Theme",
+        "title": "关闭 Woodfish 主题",
         "category": "Woodfish Theme"
       },
       {
-        "command": "woodfish-theme.reload",
-        "title": "重新加载 Woodfish Theme",
+        "command": "woodfish-theme.toggleGlow",
+        "title": "开启/关闭 Woodfish 发光",
         "category": "Woodfish Theme"
       }
     ],
@@ -81,6 +81,11 @@
               }
             }
           }
+        },
+        "woodfishTheme.enableGlowEffects": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用字体发光效果"
         }
       }
     }

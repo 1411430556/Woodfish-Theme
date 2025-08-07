@@ -169,7 +169,73 @@ function generateCustomStylesHtml() {
 }
 
 /**
- * 生成主题样式 HTML
+ * 验证发光效果状态是否与配置一致
+ * @returns {boolean} 状态是否一致
+ */
+function validateGlowEffectsState() {
+  try {
+    const htmlPath = getWorkbenchHtmlPath()
+    if (!htmlPath || !fs.existsSync(htmlPath)) {
+      console.warn('无法验证发光效果状态：HTML文件不存在')
+      return false
+    }
+    
+    const htmlContent = fs.readFileSync(htmlPath, 'utf-8')
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const configGlowState = themeConfiguration.get('enableGlowEffects', true)
+    
+    // 检查HTML中是否包含发光效果样式
+    const hasGlowEffectsInHtml = htmlContent.includes('/* Woodfish Theme 发光效果样式 */')
+    
+    console.log(`发光效果状态验证: 配置=${configGlowState}, HTML中存在=${hasGlowEffectsInHtml}`)
+    
+    return configGlowState === hasGlowEffectsInHtml
+  } catch (error) {
+    console.error('验证发光效果状态时出错:', error)
+    return false
+  }
+}
+
+/**
+ * 生成发光效果样式 HTML
+ * @returns {string} 发光效果样式 HTML
+ */
+function generateGlowEffectsHtml() {
+  try {
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const enableGlowEffects = themeConfiguration.get('enableGlowEffects', true)
+    
+    console.log(`生成发光效果HTML: enableGlowEffects=${enableGlowEffects}`)
+    
+    if (!enableGlowEffects) {
+      console.log('发光效果已禁用，返回空字符串')
+      return ''
+    }
+    
+    const glowEffectsPath = path.join(__dirname, 'themes', 'modules', 'glow-effects.css')
+    
+    if (!fs.existsSync(glowEffectsPath)) {
+      console.warn('发光效果样式文件不存在:', glowEffectsPath)
+      return ''
+    }
+    
+    const cssContent = fs.readFileSync(glowEffectsPath, 'utf-8')
+    console.log('成功读取发光效果CSS文件')
+    
+    return `
+      <style ${EXTENSION_CONFIG.tagAttribute}>
+        /* Woodfish Theme 发光效果样式 */
+        ${cssContent}
+      </style>
+    `
+  } catch (error) {
+    console.error('读取发光效果样式文件时出错:', error)
+    return ''
+  }
+}
+
+/**
+ * 生成主题样式 HTML（不包含发光效果）
  * @returns {string} 主题样式 HTML
  */
 function generateThemeStylesHtml() {
@@ -181,7 +247,11 @@ function generateThemeStylesHtml() {
       return ''
     }
     
-    const cssContent = fs.readFileSync(themeStylePath, 'utf-8')
+    let cssContent = fs.readFileSync(themeStylePath, 'utf-8')
+    
+    // 移除发光效果相关的CSS代码，因为现在由单独的模块控制
+    cssContent = removeGlowEffectsFromCss(cssContent)
+    
     return `
       <style ${EXTENSION_CONFIG.tagAttribute}>
         /* Woodfish Theme 主题样式 */
@@ -192,6 +262,25 @@ function generateThemeStylesHtml() {
     console.error('读取主题样式文件时出错:', error)
     return ''
   }
+}
+
+/**
+ * 从CSS内容中移除发光效果相关代码
+ * @param {string} cssContent CSS内容
+ * @returns {string} 移除发光效果后的CSS内容
+ */
+function removeGlowEffectsFromCss(cssContent) {
+  // 移除发光效果相关的CSS规则
+  // 匹配从发光效果注释开始到活动行号样式结束的所有内容
+  const glowEffectsRegex = /\/\*以下为透明菜单，彩虹鼠标，发光行号\*\/[\s\S]*?text-shadow:\s*0\s+0\s+20px\s+currentColor\s*!important;\s*}/g
+  
+  // 也移除单独的发光效果规则
+  const individualGlowRegex = /span\.[^{]*\{\s*text-shadow:\s*0\s+0\s+\d+px\s+currentColor\s*!important;\s*\}/g
+  
+  let cleanedContent = cssContent.replace(glowEffectsRegex, '')
+  cleanedContent = cleanedContent.replace(individualGlowRegex, '')
+  
+  return cleanedContent
 }
 
 // ==================== 主题操作函数 ====================
@@ -208,9 +297,22 @@ function applyTheme() {
   }
   
   try {
+    console.log('开始应用主题样式')
+    
+    // 确保启用主题时默认开启发光效果
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const currentGlowState = themeConfiguration.get('enableGlowEffects')
+    
+    // 如果配置中没有设置发光效果状态，或者为undefined，则默认设置为true
+    if (currentGlowState === undefined || currentGlowState === null) {
+      console.log('发光效果配置未初始化，设置为默认开启')
+      themeConfiguration.update('enableGlowEffects', true, vscode.ConfigurationTarget.Global)
+    }
+    
     // 生成样式内容
     const customStylesHtml = generateCustomStylesHtml()
     const themeStylesHtml = generateThemeStylesHtml()
+    const glowEffectsHtml = generateGlowEffectsHtml()
     
     if (!themeStylesHtml) {
       showErrorMessage('无法加载主题样式文件')
@@ -218,17 +320,34 @@ function applyTheme() {
     }
     
     // 组合最终的 HTML 内容
-    const stylesHtml = customStylesHtml + themeStylesHtml
+    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml
     const finalHtml = cleanHtml.replace('</html>', stylesHtml + '</html>')
     
     // 写入文件
     fs.writeFileSync(htmlPath, finalHtml, 'utf-8')
+    console.log('主题样式文件写入成功')
     
     // 更新版本状态
     updateVscodeVersion()
     
+    // 验证状态是否正确应用
+    setTimeout(() => {
+      const isStateValid = validateGlowEffectsState()
+      if (!isStateValid) {
+        console.warn('警告：发光效果状态验证失败，配置与实际效果可能不一致')
+      } else {
+        console.log('发光效果状态验证通过')
+      }
+    }, 500) // 给文件写入一些时间
+    
+    // 重新获取配置状态（可能已经更新）
+    const finalGlowState = themeConfiguration.get('enableGlowEffects', true)
+    const glowStatus = finalGlowState ? '（包含发光效果）' : '（不包含发光效果）'
+    
+    console.log(`主题应用完成，发光效果状态: ${finalGlowState}`)
+    
     showReloadPrompt(
-      'Woodfish Theme 已成功启用！VSCode 需要重新加载以应用更改。' +
+      `Woodfish Theme 已成功启用！${glowStatus}VSCode 需要重新加载以应用更改。` +
       '如果出现"损坏"警告，这是正常现象，可以选择"不再显示"来忽略。'
     )
     
@@ -255,6 +374,153 @@ function removeTheme() {
   } catch (error) {
     showErrorMessage(`移除主题失败: ${error.message}`)
     console.error('移除主题时出错:', error)
+  }
+}
+
+// ==================== 依赖插件管理函数 ====================
+
+/**
+ * 依赖插件配置
+ */
+const DEPENDENCY_EXTENSION = {
+  id: 'BrandonKirbyson.vscode-animations',
+  name: 'VSCode Animations',
+  description: '为VSCode提供动画效果的插件'
+}
+
+/**
+ * 检查依赖插件是否已安装
+ * @returns {boolean} 是否已安装
+ */
+function isDependencyExtensionInstalled() {
+  try {
+    const extension = vscode.extensions.getExtension(DEPENDENCY_EXTENSION.id)
+    return Boolean(extension)
+  } catch (error) {
+    console.error('检查依赖插件时出错:', error)
+    return false
+  }
+}
+
+/**
+ * 检查用户是否已经选择过不安装依赖插件
+ * @returns {boolean} 是否已选择不安装
+ */
+function hasUserDeclinedInstallation() {
+  if (!extensionContext) return false
+  
+  try {
+    return extensionContext.globalState.get(`declined-${DEPENDENCY_EXTENSION.id}`, false)
+  } catch (error) {
+    console.error('检查用户选择状态时出错:', error)
+    return false
+  }
+}
+
+/**
+ * 记录用户选择不安装依赖插件
+ */
+function recordUserDeclinedInstallation() {
+  if (!extensionContext) return
+  
+  try {
+    extensionContext.globalState.update(`declined-${DEPENDENCY_EXTENSION.id}`, true)
+    console.log('已记录用户选择不安装依赖插件')
+  } catch (error) {
+    console.error('记录用户选择时出错:', error)
+  }
+}
+
+/**
+ * 显示依赖插件安装提示
+ */
+function showInstallPrompt() {
+  const installAction = '安装插件'
+  const laterAction = '稍后'
+  const neverAction = '不再提示'
+  
+  const message = `为了获得更好的视觉体验，建议安装 ${DEPENDENCY_EXTENSION.name} 插件。该插件提供丰富的动画效果，与 Woodfish Theme 完美配合。`
+  
+  vscode.window
+    .showInformationMessage(
+      `[Woodfish Theme] ${message}`,
+      installAction,
+      laterAction,
+      neverAction
+    )
+    .then(selection => {
+      switch (selection) {
+        case installAction:
+          installDependencyExtension()
+          break
+        case neverAction:
+          recordUserDeclinedInstallation()
+          showInfoMessage('已记录您的选择，不会再次提示安装此插件')
+          break
+        case laterAction:
+        default:
+          // 用户选择稍后或关闭对话框，不做任何操作
+          break
+      }
+    })
+}
+
+/**
+ * 安装依赖插件
+ */
+function installDependencyExtension() {
+  try {
+    // 使用VSCode命令打开插件市场页面
+    const extensionUri = vscode.Uri.parse(`vscode:extension/${DEPENDENCY_EXTENSION.id}`)
+    
+    vscode.commands.executeCommand('vscode.open', extensionUri)
+      .then(() => {
+        showInfoMessage(`已打开 ${DEPENDENCY_EXTENSION.name} 插件页面，请点击安装按钮完成安装`)
+      })
+      .catch(error => {
+        console.error('打开插件页面失败:', error)
+        
+        // 备用方案：使用浏览器打开插件市场页面
+        const marketplaceUrl = `https://marketplace.visualstudio.com/items?itemName=${DEPENDENCY_EXTENSION.id}`
+        vscode.env.openExternal(vscode.Uri.parse(marketplaceUrl))
+          .then(() => {
+            showInfoMessage('已在浏览器中打开插件市场页面，请下载并安装插件')
+          })
+          .catch(browserError => {
+            console.error('打开浏览器失败:', browserError)
+            showErrorMessage(`无法自动打开插件页面，请手动搜索安装：${DEPENDENCY_EXTENSION.id}`)
+          })
+      })
+  } catch (error) {
+    console.error('安装依赖插件时出错:', error)
+    showErrorMessage(`安装插件失败: ${error.message}`)
+  }
+}
+
+/**
+ * 检查并提示安装依赖插件
+ */
+function checkDependencyExtension() {
+  try {
+    // 检查插件是否已安装
+    if (isDependencyExtensionInstalled()) {
+      console.log('依赖插件已安装，无需提示')
+      return
+    }
+    
+    // 检查用户是否已选择不安装
+    if (hasUserDeclinedInstallation()) {
+      console.log('用户已选择不安装依赖插件，跳过提示')
+      return
+    }
+    
+    // 延迟显示提示，避免与其他启动消息冲突
+    setTimeout(() => {
+      showInstallPrompt()
+    }, 2000)
+    
+  } catch (error) {
+    console.error('检查依赖插件时出错:', error)
   }
 }
 
@@ -312,6 +578,43 @@ function initializeVersionCheck() {
 // ==================== 命令注册函数 ====================
 
 /**
+ * 切换发光效果
+ */
+function toggleGlowEffects() {
+  try {
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const currentGlowState = themeConfiguration.get('enableGlowEffects', true)
+    const newGlowState = !currentGlowState
+    
+    console.log(`切换发光效果: ${currentGlowState} -> ${newGlowState}`)
+    
+    // 更新配置
+    themeConfiguration.update('enableGlowEffects', newGlowState, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        const statusMessage = newGlowState ? '发光效果已开启' : '发光效果已关闭'
+        
+        // 如果主题已启用，立即重新应用主题
+        if (wasThemeInstalled()) {
+          console.log('主题已安装，立即重新应用主题')
+          // 立即重新应用主题，不等待配置监听器
+          applyTheme()
+          showReloadPrompt(`${statusMessage}！VSCode 需要重新加载以应用更改。`)
+        } else {
+          showInfoMessage(`${statusMessage}！请先启用 Woodfish 主题以查看效果。`)
+        }
+      })
+      .catch(error => {
+        showErrorMessage(`更新发光效果配置失败: ${error.message}`)
+        console.error('更新配置时出错:', error)
+      })
+    
+  } catch (error) {
+    showErrorMessage(`切换发光效果失败: ${error.message}`)
+    console.error('切换发光效果时出错:', error)
+  }
+}
+
+/**
  * 注册扩展命令
  */
 function registerCommands() {
@@ -323,7 +626,25 @@ function registerCommands() {
       'woodfish-theme.enable', 
       () => {
         console.log('执行启用主题命令')
-        applyTheme()
+        
+        // 确保发光效果配置为开启状态
+        const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+        const currentGlowState = themeConfiguration.get('enableGlowEffects', false)
+        
+        console.log(`当前发光效果状态: ${currentGlowState}`)
+        
+        // 强制设置发光效果为开启
+        themeConfiguration.update('enableGlowEffects', true, vscode.ConfigurationTarget.Global)
+          .then(() => {
+            console.log('发光效果已强制开启')
+            // 应用主题（此时发光效果已确保开启）
+            applyTheme()
+          })
+          .catch(error => {
+            console.error('设置发光效果失败:', error)
+            // 即使设置失败，也尝试应用主题
+            applyTheme()
+          })
       }
     )
     
@@ -336,22 +657,66 @@ function registerCommands() {
       }
     )
     
-    // 重新加载主题命令
-    const reloadCommand = vscode.commands.registerCommand(
-      'woodfish-theme.reload',
+    // 切换发光效果命令
+    const toggleGlowCommand = vscode.commands.registerCommand(
+      'woodfish-theme.toggleGlow',
       () => {
-        console.log('执行重新加载主题命令')
-        removeTheme()
-        setTimeout(() => applyTheme(), 100)
+        console.log('执行切换发光效果命令')
+        toggleGlowEffects()
       }
     )
     
     // 注册到扩展上下文
-    extensionContext.subscriptions.push(enableCommand, disableCommand, reloadCommand)
+    extensionContext.subscriptions.push(enableCommand, disableCommand, toggleGlowCommand)
     
     console.log('主题命令注册成功')
   } catch (error) {
     console.error('注册命令时出错:', error)
+  }
+}
+
+// ==================== 配置监听函数 ====================
+
+/**
+ * 注册配置变化监听器
+ */
+function registerConfigurationListener() {
+  if (!extensionContext) return
+  
+  try {
+    // 监听配置变化
+    const configListener = vscode.workspace.onDidChangeConfiguration(event => {
+      // 检查是否是发光效果配置的变化
+      if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableGlowEffects`)) {
+        console.log('配置监听器检测到发光效果配置变化')
+        
+        // 检查主题是否已经启用
+        if (wasThemeInstalled()) {
+          console.log('主题已安装，配置监听器跳过重新应用（由toggleGlowEffects直接处理）')
+          // 注意：现在由 toggleGlowEffects() 函数直接处理主题重新应用
+          // 这里不再重复应用，避免双重处理
+        } else {
+          console.log('主题未安装，配置监听器无需处理')
+        }
+      }
+      
+      // 监听其他可能的配置变化（如自定义样式）
+      if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.customStyles`)) {
+        console.log('检测到自定义样式配置变化，重新应用主题')
+        
+        if (wasThemeInstalled()) {
+          // 立即重新应用主题以反映自定义样式变化
+          applyTheme()
+        }
+      }
+    })
+    
+    // 注册到扩展上下文
+    extensionContext.subscriptions.push(configListener)
+    
+    console.log('配置变化监听器注册成功')
+  } catch (error) {
+    console.error('注册配置监听器时出错:', error)
   }
 }
 
@@ -369,8 +734,14 @@ function activate(context) {
     // 注册命令
     registerCommands()
     
+    // 注册配置变化监听器
+    registerConfigurationListener()
+    
     // 初始化版本检查
     initializeVersionCheck()
+    
+    // 检查依赖插件
+    checkDependencyExtension()
     
     console.log('Woodfish Theme 扩展已成功激活')
     
