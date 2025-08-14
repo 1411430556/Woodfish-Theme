@@ -283,6 +283,30 @@ function removeGlowEffectsFromCss(cssContent) {
   return cleanedContent
 }
 
+/**
+ * 生成光标动画样式 HTML
+ * @returns {string} 光标动画样式 HTML
+ */
+function generateCursorAnimationHtml() {
+  try {
+    const cursorCssPath = path.join(__dirname, 'themes', 'modules', 'cursor-animation.css')
+    if (!fs.existsSync(cursorCssPath)) {
+      console.warn('光标动画样式文件不存在:', cursorCssPath)
+      return ''
+    }
+    const cssContent = fs.readFileSync(cursorCssPath, 'utf-8')
+    return `
+      <style ${EXTENSION_CONFIG.tagAttribute}>
+        /* Woodfish Theme 光标动画样式 */
+        ${cssContent}
+      </style>
+    `
+  } catch (error) {
+    console.error('读取光标动画样式文件时出错:', error)
+    return ''
+  }
+}
+
 // ==================== 主题操作函数 ====================
 
 /**
@@ -313,6 +337,7 @@ function applyTheme() {
     const customStylesHtml = generateCustomStylesHtml()
     const themeStylesHtml = generateThemeStylesHtml()
     const glowEffectsHtml = generateGlowEffectsHtml()
+    const cursorAnimationHtml = generateCursorAnimationHtml()
     
     if (!themeStylesHtml) {
       showErrorMessage('无法加载主题样式文件')
@@ -320,7 +345,7 @@ function applyTheme() {
     }
     
     // 组合最终的 HTML 内容
-    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml
+    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml + cursorAnimationHtml
     const finalHtml = cleanHtml.replace('</html>', stylesHtml + '</html>')
     
     // 写入文件
