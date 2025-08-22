@@ -2,8 +2,8 @@
 
 An elegant VSCode gradient theme providing a modern visual experience and a comfortable coding environment.
 
-![Woodfish Theme](https://img.shields.io/badge/version-1.0.0-blue.svg)  
-![License](https://img.shields.io/badge/license-MIT-green.svg)  
+![Woodfish Theme](https://img.shields.io/badge/version-3.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![VSCode](https://img.shields.io/badge/VSCode-%5E1.74.0-blue.svg)  
 ![Downloads](https://img.shields.io/badge/downloads-0-orange.svg)
 

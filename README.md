@@ -1,8 +1,10 @@
 # 🌈 Woodfish Theme
 
+> [English](README.en.md) | 中文
+
 > 一个具有发光效果、渐变色彩和动画的VSCode彩虹主题扩展
 
-[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VSCode](https://img.shields.io/badge/VSCode-%5E1.74.0-blue.svg)](https://code.visualstudio.com/)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/zhongjun.woodfish-theme)](https://marketplace.visualstudio.com/items?itemName=zhongjun.woodfish-theme)
@@ -20,7 +22,8 @@
 
 ## 🖼️ 预览
 
-![主题预览](images/preview.png)
+![主题预览1](images/img1.png)
+![主题预览2](images/img2.png)
 
 *展示彩虹光标、发光效果和渐变色彩的完整效果*
 
@@ -89,7 +92,7 @@ code --install-extension woodfish-theme-2.3.0.vsix
 ## 🎨 主题特色
 
 ### 彩虹光标动画
-- 30秒循环的彩虹渐变动画
+- 6秒循环的彩虹渐变动画
 - 发光效果增强视觉冲击
 - 流畅的颜色过渡
 
@@ -162,7 +165,8 @@ npm run package
 ### [2.3.0] - 2024-12-19
 
 #### 新增
-- 🚀 版本更新到2.3.0
+- 🚀 版本更新到3.0.0
+- 🌈 修复更新了彩色光标功能
 - 📝 更新项目文档
 - 🎯 分散功能，可以各自打开
 
@@ -208,6 +212,8 @@ npm run package
 ## 📞 联系方式
 
 - 作者: Woodfish
+- QQ: [woodfish](3053932588)
+- Email: [woodfish](woodfishhhh@163.com)
 - GitHub: [@woodfishhhh](https://github.com/woodfishhhh)
 - Issues: [问题反馈](https://github.com/woodfishhhh/Woodfish-Theme/issues)
 

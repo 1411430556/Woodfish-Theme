@@ -8,7 +8,6 @@
 @import url('./modules/tab-bar.css');
 @import url('./modules/syntax-highlighting.css');
 @import url('./modules/glow-effects.css');
-@import url('./modules/cursor-animation.css');
 @import url('./modules/transparent-ui.css');
 
 /* 
@@ -18,6 +17,5 @@
 - tab-bar.css: 标签栏样式，包含选中标签的渐变动画
 - syntax-highlighting.css: 语法高亮样式，包含各种代码元素的渐变色彩
 - glow-effects.css: 发光效果样式，为代码添加发光效果
-- cursor-animation.css: 光标动画样式，包含彩虹光标动画
 - transparent-ui.css: 透明UI样式，包含悬停提示、输入框等透明效果
 */

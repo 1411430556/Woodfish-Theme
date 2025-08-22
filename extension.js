@@ -6,7 +6,9 @@ const vscode = require('vscode')
  * Woodfish Theme - 原创 VSCode 主题扩展
  * 作者：Woodfish
  * 许可证：MIT
- * 版本：2.0.0
+ * 版本：3.0.0
+ * 
+ * 更新内容：修复更新了彩色光标
  * 
  * 特别感谢：
  * - 感谢 shaobeichen 为本项目提供灵感
@@ -21,7 +23,8 @@ const EXTENSION_CONFIG = {
   tagAttribute: 'data-woodfish-theme',
   versionKey: 'woodfish-theme-vscode-version',
   configSection: 'woodfishTheme',
-  themeFileName: 'woodfish-theme.css'
+  themeFileName: 'woodfish-theme.css',
+  customCssConfigKey: 'vscode_custom_css.imports'
 }
 
 // ==================== 全局变量 ====================
@@ -283,31 +286,375 @@ function removeGlowEffectsFromCss(cssContent) {
   return cleanedContent
 }
 
+// ==================== 自定义 CSS 集成函数 ====================
+
 /**
- * 生成光标动画样式 HTML
- * @returns {string} 光标动画样式 HTML
+ * 检查是否安装了 Custom CSS and JS Loader 扩展
+ * @returns {boolean} 是否已安装
  */
-function generateCursorAnimationHtml() {
+function isCustomCssExtensionInstalled() {
   try {
-    const cursorCssPath = path.join(__dirname, 'themes', 'modules', 'cursor-animation.css')
-    if (!fs.existsSync(cursorCssPath)) {
-      console.warn('光标动画样式文件不存在:', cursorCssPath)
-      return ''
-    }
-    const cssContent = fs.readFileSync(cursorCssPath, 'utf-8')
-    return `
-      <style ${EXTENSION_CONFIG.tagAttribute}>
-        /* Woodfish Theme 光标动画样式 */
-        ${cssContent}
-      </style>
-    `
+    const extension = vscode.extensions.getExtension('be5invis.vscode-custom-css')
+    return Boolean(extension)
   } catch (error) {
-    console.error('读取光标动画样式文件时出错:', error)
-    return ''
+    console.error('检查 Custom CSS 扩展时出错:', error)
+    return false
   }
 }
 
-// ==================== 主题操作函数 ====================
+/**
+ * 自动配置彩色光标
+ * 检查 Custom CSS and JS Loader 扩展，如果未安装则提示用户安装
+ */
+function autoConfigureRainbowCursor() {
+  try {
+    console.log('开始自动配置彩色光标')
+    
+    // 检查是否安装了 Custom CSS and JS Loader 扩展
+    if (!isCustomCssExtensionInstalled()) {
+      console.log('Custom CSS and JS Loader 扩展未安装，显示安装提示')
+      installCustomCssExtension()
+      return
+    }
+    
+    console.log('Custom CSS and JS Loader 扩展已安装')
+    
+    // 继续配置彩色光标
+    configureRainbowCursor()
+    
+  } catch (error) {
+    console.error('自动配置彩色光标时出错:', error)
+    showErrorMessage(`配置彩色光标失败: ${error.message}`)
+  }
+}
+
+/**
+ * 配置彩色光标的 CSS 设置
+ */
+function configureRainbowCursor() {
+  try {
+    console.log('开始配置彩色光标 CSS')
+    
+    // 检查是否已经配置了彩色光标
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    // 构建彩色光标 CSS 文件的路径
+    const rainbowCursorPath = path.join(__dirname, 'custom-css', 'rainbow-cursor.css')
+    const fileUri = `file:///${rainbowCursorPath.replace(/\\/g, '/')}`
+    
+    // 检查是否已经配置了彩色光标
+    const isAlreadyConfigured = customCssImports.some(importPath => 
+      importPath.includes('rainbow-cursor.css')
+    )
+    
+    if (isAlreadyConfigured) {
+      console.log('彩色光标已经配置，显示启用提示')
+      showCustomCssEnablePrompt()
+      return
+    }
+    
+    // 自动添加彩色光标配置
+    const newImports = [...customCssImports, fileUri]
+    
+    config.update('vscode_custom_css.imports', newImports, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('彩色光标配置已添加')
+        showCustomCssEnablePrompt()
+      })
+      .catch(error => {
+        console.error('配置彩色光标失败:', error)
+        showErrorMessage(`配置彩色光标失败: ${error.message}`)
+      })
+    
+  } catch (error) {
+    console.error('配置彩色光标 CSS 时出错:', error)
+    showErrorMessage(`配置彩色光标失败: ${error.message}`)
+  }
+}
+
+/**
+ * 显示 Custom CSS and JS Loader 扩展安装提示
+ */
+function showCustomCssInstallPrompt() {
+  const installAction = '安装扩展'
+  const laterAction = '稍后'
+  const learnMoreAction = '了解更多'
+  
+  const message = '要启用彩色光标效果，需要安装 Custom CSS and JS Loader 扩展。这个扩展可以让您自定义 VSCode 的样式。'
+  
+  vscode.window
+    .showInformationMessage(
+      `[Woodfish Theme] ${message}`,
+      installAction,
+      learnMoreAction,
+      laterAction
+    )
+    .then(selection => {
+      switch (selection) {
+        case installAction:
+          installCustomCssExtension()
+          break
+        case learnMoreAction:
+          showCustomCssSetupGuide()
+          break
+        case laterAction:
+        default:
+          showInfoMessage('您可以稍后通过命令面板执行"启动彩色光标自动配置"来重新配置')
+          break
+      }
+    })
+}
+
+/**
+ * 安装 Custom CSS and JS Loader 扩展
+ */
+function installCustomCssExtension() {
+  try {
+    // 确保使用正确的扩展ID
+    const extensionId = 'be5invis.vscode-custom-css'
+    
+    // 提示用户选择安装方式
+    const scriptAction = '使用脚本安装 (推荐)'
+    const manualAction = '手动安装'
+    const cancelAction = '取消'
+    
+    vscode.window.showInformationMessage(
+      '[Woodfish Theme] 要启用彩色光标，需要安装 Custom CSS and JS Loader 扩展。请选择安装方式：',
+      scriptAction,
+      manualAction,
+      cancelAction
+    ).then(selection => {
+      if (selection === scriptAction) {
+        // 使用脚本安装
+        installUsingScript()
+      } else if (selection === manualAction) {
+        // 手动安装
+        installManually()
+      }
+    })
+  } catch (error) {
+    console.error('安装 Custom CSS 扩展时出错:', error)
+    showErrorMessage(`安装扩展失败: ${error.message}，请手动在扩展市场搜索"Custom CSS and JS Loader"安装`)
+  }
+}
+
+/**
+ * 使用脚本安装 Custom CSS and JS Loader 扩展
+ */
+function installUsingScript() {
+  try {
+    // 获取脚本路径
+    const scriptPath = path.join(__dirname, 'scripts', 'install-custom-css.sh')
+    
+    // 确保脚本存在
+    if (!fs.existsSync(scriptPath)) {
+      showErrorMessage('安装脚本不存在，请使用手动安装方式')
+      installManually()
+      return
+    }
+    
+    // 确保脚本可执行
+    fs.chmodSync(scriptPath, '755')
+    
+    // 创建终端并执行脚本
+    const terminal = vscode.window.createTerminal('Woodfish Theme - 安装 Custom CSS')
+    
+    // 根据操作系统执行不同的命令
+    if (process.platform === 'win32') {
+      // Windows
+      terminal.sendText(`powershell -ExecutionPolicy Bypass -Command "code --install-extension be5invis.vscode-custom-css"`)
+    } else {
+      // macOS 或 Linux
+      terminal.sendText(`bash "${scriptPath}"`)
+    }
+    
+    terminal.show()
+    
+    // 提示用户安装完成后的操作
+    setTimeout(() => {
+      vscode.window.showInformationMessage(
+        '[Woodfish Theme] 安装完成后，请重启 VSCode 并执行以下步骤：\n1. 按 Ctrl+Shift+P 打开命令面板\n2. 执行"Enable Custom CSS and JS"命令\n3. 重启 VSCode',
+        '我已完成'
+      ).then(selection => {
+        if (selection === '我已完成') {
+          configureRainbowCursor()
+        }
+      })
+    }, 5000)
+    
+  } catch (error) {
+    console.error('使用脚本安装时出错:', error)
+    showErrorMessage(`脚本安装失败: ${error.message}，请尝试手动安装`)
+    installManually()
+  }
+}
+
+/**
+ * 手动安装 Custom CSS and JS Loader 扩展
+ */
+function installManually() {
+  try {
+    const extensionId = 'be5invis.vscode-custom-css'
+    
+    // 打开扩展搜索
+    vscode.commands.executeCommand('workbench.extensions.search', extensionId)
+      .then(() => {
+        showInfoMessage('已打开扩展搜索，请在扩展市场中找到并安装 Custom CSS and JS Loader')
+        
+        // 提示用户安装完成后的操作
+        setTimeout(() => {
+          vscode.window.showInformationMessage(
+            '[Woodfish Theme] 安装完成后，请重启 VSCode 并执行以下步骤：\n1. 按 Ctrl+Shift+P 打开命令面板\n2. 执行"Enable Custom CSS and JS"命令\n3. 重启 VSCode',
+            '我已完成'
+          ).then(selection => {
+            if (selection === '我已完成') {
+              configureRainbowCursor()
+            }
+          })
+        }, 3000)
+      })
+      .catch(error => {
+        console.error('打开扩展搜索失败:', error)
+        
+        // 备用方案：打开扩展页面
+        const extensionUri = vscode.Uri.parse(`vscode:extension/${extensionId}`)
+        vscode.commands.executeCommand('vscode.open', extensionUri)
+          .then(() => {
+            showInfoMessage('已打开 Custom CSS and JS Loader 扩展页面，请点击安装按钮完成安装')
+          })
+          .catch(openError => {
+            console.error('打开扩展页面失败:', openError)
+            showErrorMessage(`无法打开扩展页面，请手动在扩展市场搜索"Custom CSS and JS Loader"安装`)
+          })
+      })
+  } catch (error) {
+    console.error('手动安装时出错:', error)
+    showErrorMessage(`无法启动手动安装: ${error.message}，请在扩展市场中搜索"Custom CSS and JS Loader"安装`)
+  }
+}
+
+/**
+ * 显示 Custom CSS 启用提示
+ */
+function showCustomCssEnablePrompt() {
+  const enableAction = '启用 Custom CSS'
+  const laterAction = '稍后'
+  const guideAction = '查看指南'
+  
+  const message = '彩色光标配置已添加！现在需要启用 Custom CSS and JS Loader 扩展才能看到效果。'
+  
+  vscode.window
+    .showInformationMessage(
+      `[Woodfish Theme] ${message}`,
+      enableAction,
+      guideAction,
+      laterAction
+    )
+    .then(selection => {
+      switch (selection) {
+        case enableAction:
+          enableCustomCss()
+          break
+        case guideAction:
+          showCustomCssSetupGuide()
+          break
+        case laterAction:
+        default:
+          showInfoMessage('您可以稍后通过命令面板执行"Enable Custom CSS and JS"来启用效果')
+          break
+      }
+    })
+}
+
+/**
+ * 显示 Custom CSS 安装提示
+ * 此函数已被 installCustomCssExtension 替代，保留此函数以兼容旧代码
+ */
+function showCustomCssInstallPrompt() {
+  installCustomCssExtension();
+}
+
+/**
+ * 启用 Custom CSS
+ */
+function enableCustomCss() {
+  try {
+    vscode.commands.executeCommand('extension.updateCustomCSS')
+      .then(() => {
+        showReloadPrompt('Custom CSS 已启用！VSCode 需要重新加载以应用彩色光标效果。')
+      })
+      .catch(error => {
+        console.error('启用 Custom CSS 失败:', error)
+        
+        // 备用方案：提示用户手动启用
+        vscode.window.showInformationMessage(
+          '[Woodfish Theme] 请手动执行以下步骤启用彩色光标：\n1. 按 Ctrl+Shift+P 打开命令面板\n2. 执行"Enable Custom CSS and JS"命令\n3. 重启 VSCode',
+          '打开命令面板'
+        ).then(selection => {
+          if (selection === '打开命令面板') {
+            vscode.commands.executeCommand('workbench.action.showCommands')
+          }
+        })
+      })
+  } catch (error) {
+    console.error('启用 Custom CSS 时出错:', error)
+    showErrorMessage(`启用 Custom CSS 失败: ${error.message}`)
+  }
+}
+
+/**
+ * 显示 Custom CSS 设置指南
+ */
+function showCustomCssSetupGuide() {
+  try {
+    const guidePath = path.join(__dirname, 'vscode-custom-css-setup.md')
+    
+    if (fs.existsSync(guidePath)) {
+      vscode.workspace.openTextDocument(guidePath)
+        .then(doc => {
+          vscode.window.showTextDocument(doc)
+          showInfoMessage('已打开彩色光标设置指南，请按照说明进行配置')
+        })
+        .catch(error => {
+          console.error('打开设置指南失败:', error)
+          showErrorMessage(`无法打开设置指南: ${error.message}`)
+        })
+    } else {
+      showErrorMessage('设置指南文件不存在')
+    }
+  } catch (error) {
+    console.error('显示设置指南时出错:', error)
+    showErrorMessage(`显示设置指南失败: ${error.message}`)
+  }
+}
+
+/**
+ * 显示 Custom CSS 设置指南
+ */
+function showCustomCssSetupGuide() {
+  try {
+    const guidePath = path.join(__dirname, 'vscode-custom-css-setup.md')
+    
+    if (fs.existsSync(guidePath)) {
+      vscode.workspace.openTextDocument(guidePath)
+        .then(doc => {
+          vscode.window.showTextDocument(doc)
+          showInfoMessage('已打开彩色光标设置指南，请按照说明进行配置')
+        })
+        .catch(error => {
+          console.error('打开设置指南失败:', error)
+          showErrorMessage(`无法打开设置指南: ${error.message}`)
+        })
+    } else {
+      showErrorMessage('设置指南文件不存在')
+    }
+  } catch (error) {
+    console.error('显示设置指南时出错:', error)
+    showErrorMessage(`显示设置指南失败: ${error.message}`)
+  }
+}
+
 
 /**
  * 应用主题样式
@@ -319,6 +666,8 @@ function applyTheme() {
   if (!htmlPath || !cleanHtml) {
     return
   }
+  
+  console.log('解析到工作台 HTML 路径:', htmlPath)
   
   try {
     console.log('开始应用主题样式')
@@ -337,7 +686,6 @@ function applyTheme() {
     const customStylesHtml = generateCustomStylesHtml()
     const themeStylesHtml = generateThemeStylesHtml()
     const glowEffectsHtml = generateGlowEffectsHtml()
-    const cursorAnimationHtml = generateCursorAnimationHtml()
     
     if (!themeStylesHtml) {
       showErrorMessage('无法加载主题样式文件')
@@ -345,7 +693,7 @@ function applyTheme() {
     }
     
     // 组合最终的 HTML 内容
-    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml + cursorAnimationHtml
+    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml
     const finalHtml = cleanHtml.replace('</html>', stylesHtml + '</html>')
     
     // 写入文件
@@ -660,15 +1008,21 @@ function registerCommands() {
         
         // 强制设置发光效果为开启
         themeConfiguration.update('enableGlowEffects', true, vscode.ConfigurationTarget.Global)
-          .then(() => {
+          .then(async () => {
             console.log('发光效果已强制开启')
             // 应用主题（此时发光效果已确保开启）
             applyTheme()
+            
           })
           .catch(error => {
             console.error('设置发光效果失败:', error)
             // 即使设置失败，也尝试应用主题
             applyTheme()
+            
+            // 仍然尝试配置彩色光标
+            setTimeout(() => {
+              autoConfigureRainbowCursor()
+            }, 1000)
           })
       }
     )
@@ -691,8 +1045,22 @@ function registerCommands() {
       }
     )
     
+    // 彩色光标自动配置命令
+    const autoConfigureRainbowCursorCommand = vscode.commands.registerCommand(
+      'woodfish-theme.autoConfigureRainbowCursor',
+      () => {
+        console.log('执行彩色光标自动配置命令')
+        autoConfigureRainbowCursor()
+      }
+    )
+    
     // 注册到扩展上下文
-    extensionContext.subscriptions.push(enableCommand, disableCommand, toggleGlowCommand)
+    extensionContext.subscriptions.push(
+      enableCommand, 
+      disableCommand, 
+      toggleGlowCommand,
+      autoConfigureRainbowCursorCommand
+    )
     
     console.log('主题命令注册成功')
   } catch (error) {

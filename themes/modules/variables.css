@@ -24,19 +24,6 @@
     #ffc8e5  /* 深粉色 */
   );
   
-  /* 光标彩虹渐变 */
-  --cursor-rainbow: linear-gradient(
-    to bottom,
-    #ff2d95, /* 亮粉色 */
-    #ff4500, /* 橙红色 */
-    #ffd700, /* 金色 */
-    #7cfc00, /* 草坪绿 */
-    #00ffff, /* 青色 */
-    #1e90ff, /* 道奇蓝 */
-    #9370db, /* 中紫色 */
-    #ff00ff, /* 洋红色 */
-    #ff1493  /* 深粉色 */
-  );
   
   /* 发光强度变量 */
   --glow-high: 0 0 30px currentColor;
