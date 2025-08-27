@@ -2,7 +2,7 @@
   "name": "woodfish-theme",
   "displayName": "Woodfish Theme",
   "description": "🌈 Woodfish 彩虹主题 - 具有发光效果、渐变色彩和动画的VSCode主题扩展，修复更新了彩色光标",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "publisher": "zhongjun",
   "author": {
     "name": "Woodfish"
@@ -63,6 +63,16 @@
           "command": "woodfish-theme.autoConfigureRainbowCursor",
           "title": "启动彩色光标自动配置",
           "category": "Woodfish Theme"
+        },
+        {
+          "command": "woodfish-theme.toggleGlassEffect",
+          "title": "开启/关闭毛玻璃效果",
+          "category": "Woodfish Theme"
+        },
+        {
+          "command": "woodfish-theme.toggleRainbowCursor",
+          "title": "开启/关闭彩色光标",
+          "category": "Woodfish Theme"
         }
     ],
     "configuration": {
@@ -91,6 +101,16 @@
           "type": "boolean",
           "default": true,
           "description": "启用字体发光效果"
+        },
+        "woodfishTheme.enableGlassEffect": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用毛玻璃效果"
+        },
+        "woodfishTheme.enableRainbowCursor": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用彩色光标效果"
         }
       }
     }

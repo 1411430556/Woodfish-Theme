@@ -238,6 +238,44 @@ function generateGlowEffectsHtml() {
 }
 
 /**
+ * 生成毛玻璃效果样式 HTML
+ * @returns {string} 毛玻璃效果样式 HTML
+ */
+function generateGlassEffectsHtml() {
+  try {
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const enableGlassEffect = themeConfiguration.get('enableGlassEffect', true)
+    
+    console.log(`生成毛玻璃效果HTML: enableGlassEffect=${enableGlassEffect}`)
+    
+    if (!enableGlassEffect) {
+      console.log('毛玻璃效果已禁用，返回空字符串')
+      return ''
+    }
+    
+    const glassEffectsPath = path.join(__dirname, 'themes', 'modules', 'transparent-ui.css')
+    
+    if (!fs.existsSync(glassEffectsPath)) {
+      console.warn('毛玻璃效果样式文件不存在:', glassEffectsPath)
+      return ''
+    }
+    
+    const cssContent = fs.readFileSync(glassEffectsPath, 'utf-8')
+    console.log('成功读取毛玻璃效果CSS文件')
+    
+    return `
+      <style ${EXTENSION_CONFIG.tagAttribute}>
+        /* Woodfish Theme 毛玻璃效果样式 */
+        ${cssContent}
+      </style>
+    `
+  } catch (error) {
+    console.error('读取毛玻璃效果样式文件时出错:', error)
+    return ''
+  }
+}
+
+/**
  * 生成主题样式 HTML（不包含发光效果）
  * @returns {string} 主题样式 HTML
  */
@@ -686,6 +724,7 @@ function applyTheme() {
     const customStylesHtml = generateCustomStylesHtml()
     const themeStylesHtml = generateThemeStylesHtml()
     const glowEffectsHtml = generateGlowEffectsHtml()
+    const glassEffectsHtml = generateGlassEffectsHtml()
     
     if (!themeStylesHtml) {
       showErrorMessage('无法加载主题样式文件')
@@ -693,7 +732,7 @@ function applyTheme() {
     }
     
     // 组合最终的 HTML 内容
-    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml
+    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml + glassEffectsHtml
     const finalHtml = cleanHtml.replace('</html>', stylesHtml + '</html>')
     
     // 写入文件
@@ -988,6 +1027,111 @@ function toggleGlowEffects() {
 }
 
 /**
+ * 切换毛玻璃效果
+ */
+function toggleGlassEffect() {
+  try {
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const currentGlassState = themeConfiguration.get('enableGlassEffect', true)
+    const newGlassState = !currentGlassState
+    
+    console.log(`切换毛玻璃效果: ${currentGlassState} -> ${newGlassState}`)
+    
+    // 更新配置
+    themeConfiguration.update('enableGlassEffect', newGlassState, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        const statusMessage = newGlassState ? '毛玻璃效果已开启' : '毛玻璃效果已关闭'
+        
+        // 如果主题已启用，立即重新应用主题
+        if (wasThemeInstalled()) {
+          console.log('主题已安装，立即重新应用主题')
+          applyTheme()
+          showReloadPrompt(`${statusMessage}！VSCode 需要重新加载以应用更改。`)
+        } else {
+          showInfoMessage(`${statusMessage}！请先启用 Woodfish 主题以查看效果。`)
+        }
+      })
+      .catch(error => {
+        showErrorMessage(`更新毛玻璃效果配置失败: ${error.message}`)
+        console.error('更新配置时出错:', error)
+      })
+    
+  } catch (error) {
+    showErrorMessage(`切换毛玻璃效果失败: ${error.message}`)
+    console.error('切换毛玻璃效果时出错:', error)
+  }
+}
+
+/**
+ * 切换彩色光标效果
+ */
+function toggleRainbowCursor() {
+  try {
+    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
+    const currentCursorState = themeConfiguration.get('enableRainbowCursor', false)
+    const newCursorState = !currentCursorState
+    
+    console.log(`切换彩色光标效果: ${currentCursorState} -> ${newCursorState}`)
+    
+    // 更新配置
+    themeConfiguration.update('enableRainbowCursor', newCursorState, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        const statusMessage = newCursorState ? '彩色光标效果已开启' : '彩色光标效果已关闭'
+        
+        if (newCursorState) {
+          // 开启彩色光标时，自动配置
+          autoConfigureRainbowCursor()
+        } else {
+          // 关闭彩色光标时，移除配置
+          removeRainbowCursorConfig()
+        }
+        
+        showInfoMessage(statusMessage)
+      })
+      .catch(error => {
+        showErrorMessage(`更新彩色光标配置失败: ${error.message}`)
+        console.error('更新配置时出错:', error)
+      })
+    
+  } catch (error) {
+    showErrorMessage(`切换彩色光标效果失败: ${error.message}`)
+    console.error('切换彩色光标效果时出错:', error)
+  }
+}
+
+/**
+ * 移除彩色光标配置
+ */
+function removeRainbowCursorConfig() {
+  try {
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    // 过滤掉彩色光标相关的配置
+    const filteredImports = customCssImports.filter(importPath => 
+      !importPath.includes('rainbow-cursor.css')
+    )
+    
+    if (filteredImports.length !== customCssImports.length) {
+      config.update('vscode_custom_css.imports', filteredImports, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log('彩色光标配置已移除')
+          showReloadPrompt('彩色光标配置已移除！VSCode 需要重新加载以应用更改。')
+        })
+        .catch(error => {
+          console.error('移除彩色光标配置失败:', error)
+          showErrorMessage(`移除彩色光标配置失败: ${error.message}`)
+        })
+    } else {
+      showInfoMessage('彩色光标配置未找到或已移除')
+    }
+  } catch (error) {
+    console.error('移除彩色光标配置时出错:', error)
+    showErrorMessage(`移除彩色光标配置失败: ${error.message}`)
+  }
+}
+
+/**
  * 注册扩展命令
  */
 function registerCommands() {
@@ -1054,12 +1198,32 @@ function registerCommands() {
       }
     )
     
+    // 切换毛玻璃效果命令
+    const toggleGlassEffectCommand = vscode.commands.registerCommand(
+      'woodfish-theme.toggleGlassEffect',
+      () => {
+        console.log('执行切换毛玻璃效果命令')
+        toggleGlassEffect()
+      }
+    )
+    
+    // 切换彩色光标命令
+    const toggleRainbowCursorCommand = vscode.commands.registerCommand(
+      'woodfish-theme.toggleRainbowCursor',
+      () => {
+        console.log('执行切换彩色光标命令')
+        toggleRainbowCursor()
+      }
+    )
+    
     // 注册到扩展上下文
     extensionContext.subscriptions.push(
       enableCommand, 
       disableCommand, 
       toggleGlowCommand,
-      autoConfigureRainbowCursorCommand
+      autoConfigureRainbowCursorCommand,
+      toggleGlassEffectCommand,
+      toggleRainbowCursorCommand
     )
     
     console.log('主题命令注册成功')
@@ -1091,6 +1255,23 @@ function registerConfigurationListener() {
         } else {
           console.log('主题未安装，配置监听器无需处理')
         }
+      }
+      
+      // 检查是否是毛玻璃效果配置的变化
+      if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableGlassEffect`)) {
+        console.log('配置监听器检测到毛玻璃效果配置变化')
+        
+        if (wasThemeInstalled()) {
+          console.log('主题已安装，配置监听器跳过重新应用（由toggleGlassEffect直接处理）')
+        } else {
+          console.log('主题未安装，配置监听器无需处理')
+        }
+      }
+      
+      // 检查是否是彩色光标配置的变化
+      if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableRainbowCursor`)) {
+        console.log('配置监听器检测到彩色光标配置变化')
+        // 彩色光标的处理由 toggleRainbowCursor() 函数直接处理
       }
       
       // 监听其他可能的配置变化（如自定义样式）

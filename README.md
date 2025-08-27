@@ -1,10 +1,10 @@
 # 🌈 Woodfish Theme
 
-> [English](README.en.md) | 中文
+> [English](README.en.md) | English
 
 > 一个具有发光效果、渐变色彩和动画的VSCode彩虹主题扩展
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VSCode](https://img.shields.io/badge/VSCode-%5E1.74.0-blue.svg)](https://code.visualstudio.com/)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/zhongjun.woodfish-theme)](https://marketplace.visualstudio.com/items?itemName=zhongjun.woodfish-theme)
@@ -19,6 +19,7 @@
 - 📊 **活动栏动画**: 选中标签的渐变边框动画
 - 🎯 **模块化设计**: 可按需自定义的模块化CSS架构
 - 🚀 **性能优化**: 轻量级设计，不影响编辑器性能
+- 🎛️ **独立控制**: 发光效果、毛玻璃效果、彩色光标可独立开关 🆕
 
 ## 🖼️ 预览
 
@@ -40,7 +41,7 @@
 
 ```bash
 # 下载并安装VSIX文件
-code --install-extension woodfish-theme-2.3.0.vsix
+code --install-extension woodfish-theme-3.0.0.vsix
 ```
 
 ## 🚀 使用方法
@@ -52,10 +53,30 @@ code --install-extension woodfish-theme-2.3.0.vsix
 3. 选择并执行命令
 4. 重启VSCode以应用更改
 
+### 🌈 启用彩色光标 (v3.0.0新功能)
+
+1. 按 `Ctrl+Shift+P` 打开命令面板
+2. 输入 `Woodfish Theme: 启动彩色光标自动配置`
+3. 选择并执行命令
+4. 如果提示安装 Custom CSS and JS Loader 扩展，选择安装方式：
+   - **推荐**: 选择"使用脚本自动安装"
+   - **手动**: 选择"手动安装"并按提示操作
+5. 安装完成后，按提示启用 Custom CSS 功能
+6. 重启VSCode享受彩色光标效果
+
 ### 选择颜色主题
 
 1. 按 `Ctrl+K Ctrl+T` 打开主题选择器
 2. 选择 "Woodfish Dark"
+
+### 🎛️ 主题命令
+
+- `Woodfish Theme: 启用 Woodfish Theme` - 启用主题
+- `Woodfish Theme: 关闭 Woodfish Theme` - 关闭主题
+- `Woodfish Theme: 开启/关闭 Woodfish 发光` - 切换发光效果
+- `Woodfish Theme: 启动彩色光标自动配置` - 配置彩色光标 ✨新功能
+- `Woodfish Theme: 开启/关闭毛玻璃效果` - 切换毛玻璃效果 🆕
+- `Woodfish Theme: 开启/关闭彩色光标` - 切换彩色光标效果 🆕
 
 ## ⚙️ 自定义配置
 
@@ -68,9 +89,19 @@ code --install-extension woodfish-theme-2.3.0.vsix
       "enabled": true,
       "css": "/* 自定义CSS样式 */"
     }
-  ]
+  ],
+  "woodfishTheme.enableGlowEffects": true,
+  "woodfishTheme.enableGlassEffect": true,
+  "woodfishTheme.enableRainbowCursor": false
 }
 ```
+
+### 配置项说明
+
+- `woodfishTheme.enableGlowEffects`: 启用/禁用发光效果
+- `woodfishTheme.enableGlassEffect`: 启用/禁用毛玻璃效果
+- `woodfishTheme.enableRainbowCursor`: 启用/禁用彩色光标效果
+- `woodfishTheme.customStyles`: 自定义CSS样式数组
 
 ### 自定义样式示例
 
@@ -162,11 +193,52 @@ npm run package
 
 ## 📝 更新日志
 
+### [3.1.0] - 2025-08-27 ✨ 最新版本
+
+#### 🆕 主要新增功能
+- **独立效果控制** - 新增"开启/关闭毛玻璃效果"命令，可独立控制透明UI效果
+- **彩色光标开关** - 新增"开启/关闭彩色光标"命令，一键切换彩色光标效果
+- **智能配置管理** - 彩色光标开关自动管理Custom CSS配置，无需手动操作
+- **模块化架构优化** - 完善模块化设计，各效果完全独立可控
+
+#### 🎛️ 新增命令
+- `Woodfish Theme: 开启/关闭毛玻璃效果` - 切换透明UI和毛玻璃效果
+- `Woodfish Theme: 开启/关闭彩色光标` - 切换彩色光标效果
+
+#### ⚙️ 新增配置项
+- `woodfishTheme.enableGlassEffect`: 控制毛玻璃效果开关
+- `woodfishTheme.enableRainbowCursor`: 控制彩色光标效果开关
+
+#### 🐛 优化改进
+- 完善配置监听机制，实时响应效果开关
+- 优化用户体验，提供清晰的状态反馈
+- 改进错误处理和降级方案
+- 增强文档说明和使用指南
+
+### [3.0.0] - 2025-01-22
+
+#### 🌈 主要新增功能
+- **彩色光标自动配置** - 新增"启动彩色光标自动配置"命令，一键启用炫酷的彩色光标效果
+- **智能依赖管理** - 自动检测并安装 Custom CSS and JS Loader 扩展
+- **多种安装方式** - 支持脚本自动安装和手动安装两种方式
+- **完整配置流程** - 自动配置彩色光标 CSS 设置并引导用户启用
+- **跨平台支持** - 完美兼容 Windows、macOS 和 Linux 系统
+
+#### 🐛 修复和优化
+- 修复了彩色光标配置中的依赖扩展安装问题
+- 完善了错误处理和用户提示机制
+- 优化了扩展安装流程的用户体验
+- 改进了文档结构和说明
+
+#### 📦 发布信息
+- ✅ **VSCode 扩展市场**: [立即安装](https://marketplace.visualstudio.com/items?itemName=zhongjun.woodfish-theme)
+- ✅ **GitHub Release**: [v3.0.0](https://github.com/woodfishhhh/Woodfish-Theme/releases/tag/v3.0.0)
+- ✅ **VSIX 下载**: [woodfish-theme-3.0.0.vsix](https://github.com/woodfishhhh/Woodfish-Theme/releases/download/v3.0.0/woodfish-theme-3.0.0.vsix)
+
 ### [2.3.0] - 2024-12-19
 
 #### 新增
-- 🚀 版本更新到3.0.0
-- 🌈 修复更新了彩色光标功能
+- 🚀 版本更新到2.3.0
 - 📝 更新项目文档
 - 🎯 分散功能，可以各自打开
 
