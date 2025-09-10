@@ -1,6 +1,6 @@
 # 🌈 Woodfish Theme
 
-> [English](README.en.md) | English
+> 中文 | [English](README.en.md)
 
 > 一个具有发光效果、渐变色彩和动画的VSCode彩虹主题扩展
 
