@@ -1,5 +1,7 @@
 # Woodfish Theme
 
+> [中文](README.md) | English
+
 An elegant VSCode gradient theme providing a modern visual experience and a comfortable coding environment.
 
 ![Woodfish Theme](https://img.shields.io/badge/version-3.0.0-blue.svg)
