@@ -4,7 +4,7 @@
 
 > 一个具有发光效果、渐变色彩和动画的VSCode彩虹主题扩展
 
-[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
+[![Version](https://img.shields.io/badge/version-3.4.0-blue.svg)](https://github.com/woodfishhhh/Woodfish-Theme)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VSCode](https://img.shields.io/badge/VSCode-%5E1.74.0-blue.svg)](https://code.visualstudio.com/)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/zhongjun.woodfish-theme)](https://marketplace.visualstudio.com/items?itemName=zhongjun.woodfish-theme)
@@ -73,6 +73,7 @@ code --install-extension woodfish-theme-3.0.0.vsix
 
 - `Woodfish Theme: 启用 Woodfish Theme` - 启用主题
 - `Woodfish Theme: 关闭 Woodfish Theme` - 关闭主题
+- `Woodfish Theme: 彻底停用 Woodfish 主题` - 强制去除新版和旧版的发光特效以及彩色光标等 🆕
 - `Woodfish Theme: 开启/关闭 Woodfish 发光` - 切换发光效果
 - `Woodfish Theme: 启动彩色光标自动配置` - 配置彩色光标 ✨新功能
 - `Woodfish Theme: 开启/关闭毛玻璃效果` - 切换毛玻璃效果 🆕
@@ -193,7 +194,22 @@ npm run package
 
 ## 📝 更新日志
 
-### [3.1.0] - 2025-08-27 ✨ 最新版本
+### [3.4.0] - 2025-09-18 ✨ 最新版本
+
+#### 🆕 主要新增功能
+- **彻底停用功能** - 新增"彻底停用 Woodfish 主题"命令，可强制去除新版和旧版的发光特效以及彩色光标等
+- **完全清理机制** - 彻底清理所有主题相关的CSS配置和Custom CSS设置
+- **兼容性增强** - 确保与各种版本的主题配置完全兼容
+
+#### 🎛️ 新增命令
+- `Woodfish Theme: 彻底停用 Woodfish 主题` - 强制去除所有主题效果，包括新版和旧版配置
+
+#### 🐛 优化改进
+- 完善主题卸载机制，确保彻底清理
+- 优化用户体验，提供完整的停用选项
+- 改进错误处理和状态反馈
+
+### [3.1.0] - 2025-08-27
 
 #### 🆕 主要新增功能
 - **独立效果控制** - 新增"开启/关闭毛玻璃效果"命令，可独立控制透明UI效果

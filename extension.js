@@ -20,7 +20,6 @@ const vscode = require('vscode')
 const EXTENSION_CONFIG = {
   name: 'woodfish-theme',
   displayName: 'Woodfish Theme',
-  tagAttribute: 'data-woodfish-theme',
   versionKey: 'woodfish-theme-vscode-version',
   configSection: 'woodfishTheme',
   themeFileName: 'woodfish-theme.css',
@@ -33,45 +32,7 @@ let extensionContext = null
 
 // ==================== 工具函数 ====================
 
-/**
- * 获取 VSCode 工作台 HTML 文件路径
- * 支持多种 VSCode 版本和 Cursor IDE
- * @returns {string|null} HTML 文件路径或 null
- */
-function getWorkbenchHtmlPath() {
-  try {
-    const appDirectory = require.main 
-      ? path.dirname(require.main.filename) 
-      : globalThis._VSCODE_FILE_ROOT
-    
-    if (!appDirectory) {
-      return null
-    }
-    
-    const baseDirectory = path.join(appDirectory, 'vs', 'code')
-    
-    // 按优先级排序的可能路径
-    const possiblePaths = [
-      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.html'),
-      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench-apc-extension.html'),
-      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.esm.html'),
-      path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.esm.html'),
-      path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.html')
-    ]
-    
-    // 查找第一个存在的文件
-    for (const htmlPath of possiblePaths) {
-      if (fs.existsSync(htmlPath)) {
-        return htmlPath
-      }
-    }
-    
-    return null
-  } catch (error) {
-    console.error('获取工作台 HTML 路径时出错:', error)
-    return null
-  }
-}
+
 
 /**
  * 显示信息消息
@@ -106,222 +67,82 @@ function showReloadPrompt(message) {
     })
 }
 
-// ==================== HTML 处理函数 ====================
+// ==================== 主题配置函数 ====================
 
 /**
- * 清理 HTML 文件中的主题样式
- * @param {string} htmlContent HTML 内容
- * @returns {string} 清理后的 HTML 内容
+ * 配置主题CSS文件到Custom CSS扩展
  */
-function cleanThemeStyles(htmlContent) {
-  const styleRegex = new RegExp(
-    `<style[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>.*?</style>|<script[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>.*?</script>`,
-    'gs'
-  )
-  return htmlContent.replace(styleRegex, '')
-}
-
-/**
- * 读取并清理 HTML 文件
- * @returns {string|null} 清理后的 HTML 内容或 null
- */
-function getCleanHtmlContent() {
-  const htmlPath = getWorkbenchHtmlPath()
-  
-  if (!htmlPath) {
-    showErrorMessage('无法找到 VSCode 工作台 HTML 文件，可能不支持当前版本')
-    return null
-  }
-  
-  if (!fs.existsSync(htmlPath)) {
-    showErrorMessage('VSCode 工作台 HTML 文件不存在')
-    return null
-  }
-  
+function configureThemeCSS() {
   try {
-    const htmlContent = fs.readFileSync(htmlPath, 'utf-8')
-    return cleanThemeStyles(htmlContent)
-  } catch (error) {
-    showErrorMessage(`读取 HTML 文件失败: ${error.message}`)
-    return null
-  }
-}
-
-/**
- * 生成自定义样式 HTML
- * @returns {string} 自定义样式 HTML
- */
-function generateCustomStylesHtml() {
-  try {
-    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-    const customStyles = themeConfiguration.get('customStyles', [])
+    console.log('开始配置主题CSS')
     
-    return customStyles
-      .filter(style => style && style.enabled && style.css)
-      .map(style => `
-        <style ${EXTENSION_CONFIG.tagAttribute}>
-          /* 用户自定义样式 */
-          ${style.css}
-        </style>
-      `)
-      .join('')
-  } catch (error) {
-    console.warn('生成自定义样式时出错:', error)
-    return ''
-  }
-}
-
-/**
- * 验证发光效果状态是否与配置一致
- * @returns {boolean} 状态是否一致
- */
-function validateGlowEffectsState() {
-  try {
-    const htmlPath = getWorkbenchHtmlPath()
-    if (!htmlPath || !fs.existsSync(htmlPath)) {
-      console.warn('无法验证发光效果状态：HTML文件不存在')
-      return false
+    // 检查是否安装了 Custom CSS and JS Loader 扩展
+    if (!isCustomCssExtensionInstalled()) {
+      console.log('Custom CSS and JS Loader 扩展未安装，显示安装提示')
+      installCustomCssExtension()
+      return
     }
     
-    const htmlContent = fs.readFileSync(htmlPath, 'utf-8')
-    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-    const configGlowState = themeConfiguration.get('enableGlowEffects', true)
+    console.log('Custom CSS and JS Loader 扩展已安装')
     
-    // 检查HTML中是否包含发光效果样式
-    const hasGlowEffectsInHtml = htmlContent.includes('/* Woodfish Theme 发光效果样式 */')
+    // 获取当前配置
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
     
-    console.log(`发光效果状态验证: 配置=${configGlowState}, HTML中存在=${hasGlowEffectsInHtml}`)
-    
-    return configGlowState === hasGlowEffectsInHtml
-  } catch (error) {
-    console.error('验证发光效果状态时出错:', error)
-    return false
-  }
-}
-
-/**
- * 生成发光效果样式 HTML
- * @returns {string} 发光效果样式 HTML
- */
-function generateGlowEffectsHtml() {
-  try {
-    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-    const enableGlowEffects = themeConfiguration.get('enableGlowEffects', true)
-    
-    console.log(`生成发光效果HTML: enableGlowEffects=${enableGlowEffects}`)
-    
-    if (!enableGlowEffects) {
-      console.log('发光效果已禁用，返回空字符串')
-      return ''
-    }
-    
-    const glowEffectsPath = path.join(__dirname, 'themes', 'modules', 'glow-effects.css')
-    
-    if (!fs.existsSync(glowEffectsPath)) {
-      console.warn('发光效果样式文件不存在:', glowEffectsPath)
-      return ''
-    }
-    
-    const cssContent = fs.readFileSync(glowEffectsPath, 'utf-8')
-    console.log('成功读取发光效果CSS文件')
-    
-    return `
-      <style ${EXTENSION_CONFIG.tagAttribute}>
-        /* Woodfish Theme 发光效果样式 */
-        ${cssContent}
-      </style>
-    `
-  } catch (error) {
-    console.error('读取发光效果样式文件时出错:', error)
-    return ''
-  }
-}
-
-/**
- * 生成毛玻璃效果样式 HTML
- * @returns {string} 毛玻璃效果样式 HTML
- */
-function generateGlassEffectsHtml() {
-  try {
-    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-    const enableGlassEffect = themeConfiguration.get('enableGlassEffect', true)
-    
-    console.log(`生成毛玻璃效果HTML: enableGlassEffect=${enableGlassEffect}`)
-    
-    if (!enableGlassEffect) {
-      console.log('毛玻璃效果已禁用，返回空字符串')
-      return ''
-    }
-    
-    const glassEffectsPath = path.join(__dirname, 'themes', 'modules', 'transparent-ui.css')
-    
-    if (!fs.existsSync(glassEffectsPath)) {
-      console.warn('毛玻璃效果样式文件不存在:', glassEffectsPath)
-      return ''
-    }
-    
-    const cssContent = fs.readFileSync(glassEffectsPath, 'utf-8')
-    console.log('成功读取毛玻璃效果CSS文件')
-    
-    return `
-      <style ${EXTENSION_CONFIG.tagAttribute}>
-        /* Woodfish Theme 毛玻璃效果样式 */
-        ${cssContent}
-      </style>
-    `
-  } catch (error) {
-    console.error('读取毛玻璃效果样式文件时出错:', error)
-    return ''
-  }
-}
-
-/**
- * 生成主题样式 HTML（不包含发光效果）
- * @returns {string} 主题样式 HTML
- */
-function generateThemeStylesHtml() {
-  try {
+    // 构建主题CSS文件路径
     const themeStylePath = path.join(__dirname, 'themes', EXTENSION_CONFIG.themeFileName)
+    const themeFileUri = `file:///${themeStylePath.replace(/\\/g, '/')}`
     
-    if (!fs.existsSync(themeStylePath)) {
-      console.warn('主题样式文件不存在:', themeStylePath)
-      return ''
+    console.log(`目标主题配置路径:`, themeFileUri)
+    console.log(`当前导入列表:`, customCssImports)
+    
+    // 更精确地检查是否已经配置了主题CSS
+    const isThemeConfigured = customCssImports.some(importPath => {
+      // 完全匹配文件URI
+      if (importPath === themeFileUri) {
+        console.log(`找到完全匹配的主题配置:`, importPath)
+        return true
+      }
+      // 备用匹配：检查是否包含主题文件标识
+      if (importPath.includes('woodfish-theme.css')) {
+        console.log(`找到包含主题文件标识的配置:`, importPath)
+        return true
+      }
+      return false
+    })
+    
+    if (isThemeConfigured) {
+      console.log('主题CSS已经配置')
+      showCustomCssEnablePrompt()
+      return
     }
     
-    let cssContent = fs.readFileSync(themeStylePath, 'utf-8')
+    // 检查文件是否存在
+    if (!fs.existsSync(themeStylePath)) {
+      console.error(`主题CSS文件不存在: ${themeStylePath}`)
+      showErrorMessage('主题CSS文件不存在，请检查扩展安装是否完整')
+      return
+    }
     
-    // 移除发光效果相关的CSS代码，因为现在由单独的模块控制
-    cssContent = removeGlowEffectsFromCss(cssContent)
+    console.log(`添加主题配置: ${themeFileUri}`)
     
-    return `
-      <style ${EXTENSION_CONFIG.tagAttribute}>
-        /* Woodfish Theme 主题样式 */
-        ${cssContent}
-      </style>
-    `
+    // 自动添加主题CSS配置
+    const newImports = [...customCssImports, themeFileUri]
+    
+    config.update('vscode_custom_css.imports', newImports, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('主题CSS配置已添加')
+        showCustomCssEnablePrompt()
+      })
+      .catch(error => {
+        console.error('配置主题CSS失败:', error)
+        showErrorMessage(`配置主题CSS失败: ${error.message}`)
+      })
+    
   } catch (error) {
-    console.error('读取主题样式文件时出错:', error)
-    return ''
+    console.error('配置主题CSS时出错:', error)
+    showErrorMessage(`配置主题CSS失败: ${error.message}`)
   }
-}
-
-/**
- * 从CSS内容中移除发光效果相关代码
- * @param {string} cssContent CSS内容
- * @returns {string} 移除发光效果后的CSS内容
- */
-function removeGlowEffectsFromCss(cssContent) {
-  // 移除发光效果相关的CSS规则
-  // 匹配从发光效果注释开始到活动行号样式结束的所有内容
-  const glowEffectsRegex = /\/\*以下为透明菜单，彩虹鼠标，发光行号\*\/[\s\S]*?text-shadow:\s*0\s+0\s+20px\s+currentColor\s*!important;\s*}/g
-  
-  // 也移除单独的发光效果规则
-  const individualGlowRegex = /span\.[^{]*\{\s*text-shadow:\s*0\s+0\s+\d+px\s+currentColor\s*!important;\s*\}/g
-  
-  let cleanedContent = cssContent.replace(glowEffectsRegex, '')
-  cleanedContent = cleanedContent.replace(individualGlowRegex, '')
-  
-  return cleanedContent
 }
 
 // ==================== 自定义 CSS 集成函数 ====================
@@ -381,16 +202,38 @@ function configureRainbowCursor() {
     const rainbowCursorPath = path.join(__dirname, 'custom-css', 'rainbow-cursor.css')
     const fileUri = `file:///${rainbowCursorPath.replace(/\\/g, '/')}`
     
-    // 检查是否已经配置了彩色光标
-    const isAlreadyConfigured = customCssImports.some(importPath => 
-      importPath.includes('rainbow-cursor.css')
-    )
+    console.log(`目标配置路径:`, fileUri)
+    console.log(`当前导入列表:`, customCssImports)
+    
+    // 更精确地检查是否已经配置了彩色光标
+    const isAlreadyConfigured = customCssImports.some(importPath => {
+      // 完全匹配文件URI
+      if (importPath === fileUri) {
+        console.log(`找到完全匹配的彩色光标配置:`, importPath)
+        return true
+      }
+      // 检查是否包含彩虹光标文件标识（备用匹配）
+      if (importPath.includes('rainbow-cursor.css')) {
+        console.log(`找到包含彩虹光标标识的配置:`, importPath)
+        return true
+      }
+      return false
+    })
     
     if (isAlreadyConfigured) {
       console.log('彩色光标已经配置，显示启用提示')
       showCustomCssEnablePrompt()
       return
     }
+    
+    // 检查文件是否存在
+    if (!fs.existsSync(rainbowCursorPath)) {
+      console.error(`彩色光标CSS文件不存在: ${rainbowCursorPath}`)
+      showErrorMessage('彩色光标CSS文件不存在，请检查扩展安装是否完整')
+      return
+    }
+    
+    console.log(`添加彩色光标配置: ${fileUri}`)
     
     // 自动添加彩色光标配置
     const newImports = [...customCssImports, fileUri]
@@ -695,73 +538,19 @@ function showCustomCssSetupGuide() {
 
 
 /**
- * 应用主题样式
+ * 应用主题样式（通过Custom CSS扩展）
  */
 function applyTheme() {
-  const htmlPath = getWorkbenchHtmlPath()
-  const cleanHtml = getCleanHtmlContent()
-  
-  if (!htmlPath || !cleanHtml) {
-    return
-  }
-  
-  console.log('解析到工作台 HTML 路径:', htmlPath)
-  
   try {
-    console.log('开始应用主题样式')
+    console.log('开始应用主题样式（通过Custom CSS扩展）')
     
-    // 确保启用主题时默认开启发光效果
-    const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-    const currentGlowState = themeConfiguration.get('enableGlowEffects')
-    
-    // 如果配置中没有设置发光效果状态，或者为undefined，则默认设置为true
-    if (currentGlowState === undefined || currentGlowState === null) {
-      console.log('发光效果配置未初始化，设置为默认开启')
-      themeConfiguration.update('enableGlowEffects', true, vscode.ConfigurationTarget.Global)
-    }
-    
-    // 生成样式内容
-    const customStylesHtml = generateCustomStylesHtml()
-    const themeStylesHtml = generateThemeStylesHtml()
-    const glowEffectsHtml = generateGlowEffectsHtml()
-    const glassEffectsHtml = generateGlassEffectsHtml()
-    
-    if (!themeStylesHtml) {
-      showErrorMessage('无法加载主题样式文件')
-      return
-    }
-    
-    // 组合最终的 HTML 内容
-    const stylesHtml = customStylesHtml + themeStylesHtml + glowEffectsHtml + glassEffectsHtml
-    const finalHtml = cleanHtml.replace('</html>', stylesHtml + '</html>')
-    
-    // 写入文件
-    fs.writeFileSync(htmlPath, finalHtml, 'utf-8')
-    console.log('主题样式文件写入成功')
+    // 配置主题CSS文件
+    configureThemeCSS()
     
     // 更新版本状态
     updateVscodeVersion()
     
-    // 验证状态是否正确应用
-    setTimeout(() => {
-      const isStateValid = validateGlowEffectsState()
-      if (!isStateValid) {
-        console.warn('警告：发光效果状态验证失败，配置与实际效果可能不一致')
-      } else {
-        console.log('发光效果状态验证通过')
-      }
-    }, 500) // 给文件写入一些时间
-    
-    // 重新获取配置状态（可能已经更新）
-    const finalGlowState = themeConfiguration.get('enableGlowEffects', true)
-    const glowStatus = finalGlowState ? '（包含发光效果）' : '（不包含发光效果）'
-    
-    console.log(`主题应用完成，发光效果状态: ${finalGlowState}`)
-    
-    showReloadPrompt(
-      `Woodfish Theme 已成功启用！${glowStatus}VSCode 需要重新加载以应用更改。` +
-      '如果出现"损坏"警告，这是正常现象，可以选择"不再显示"来忽略。'
-    )
+    console.log('主题应用完成')
     
   } catch (error) {
     showErrorMessage(`应用主题失败: ${error.message}`)
@@ -770,19 +559,55 @@ function applyTheme() {
 }
 
 /**
- * 移除主题样式
+ * 移除主题样式（从Custom CSS扩展配置中移除）
  */
 function removeTheme() {
-  const htmlPath = getWorkbenchHtmlPath()
-  const cleanHtml = getCleanHtmlContent()
-  
-  if (!htmlPath || !cleanHtml) {
-    return
-  }
-  
   try {
-    fs.writeFileSync(htmlPath, cleanHtml, 'utf-8')
-    showReloadPrompt('Woodfish Theme 已成功禁用！VSCode 需要重新加载以应用更改。')
+    console.log('开始移除主题样式')
+    
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    // 构建主题CSS文件的路径（用于精确匹配）
+    const themeStylePath = path.join(__dirname, 'themes', EXTENSION_CONFIG.themeFileName)
+    const themeFileUri = `file:///${themeStylePath.replace(/\\/g, '/')}`
+    
+    console.log(`尝试移除主题配置，当前导入列表:`, customCssImports)
+    console.log(`目标移除路径:`, themeFileUri)
+    
+    // 过滤掉主题相关的配置 - 使用更精确的匹配
+    const filteredImports = customCssImports.filter(importPath => {
+      // 完全匹配文件URI
+      if (importPath === themeFileUri) {
+        console.log(`找到完全匹配的主题路径，将移除:`, importPath)
+        return false
+      }
+      // 备用匹配：检查是否包含主题文件标识
+      if (importPath.includes('woodfish-theme.css')) {
+        console.log(`找到包含主题文件标识的路径，将移除:`, importPath)
+        return false
+      }
+      return true
+    })
+    
+    const removedCount = customCssImports.length - filteredImports.length
+    console.log(`移除了 ${removedCount} 个主题配置`)
+    
+    if (removedCount > 0) {
+      config.update('vscode_custom_css.imports', filteredImports, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log('主题CSS配置已移除')
+          showReloadPrompt('Woodfish Theme 已成功禁用！VSCode 需要重新加载以应用更改。')
+        })
+        .catch(error => {
+          console.error('移除主题配置失败:', error)
+          showErrorMessage(`移除主题失败: ${error.message}`)
+        })
+    } else {
+      console.log('未找到主题配置，可能已经被移除')
+      showInfoMessage('主题配置未找到或已移除')
+    }
+    
   } catch (error) {
     showErrorMessage(`移除主题失败: ${error.message}`)
     console.error('移除主题时出错:', error)
@@ -961,26 +786,37 @@ function updateVscodeVersion() {
 }
 
 /**
- * 检查是否曾经安装过主题
+ * 检查是否曾经安装过主题（通过Custom CSS配置检查）
  * @returns {boolean} 是否安装过
  */
 function wasThemeInstalled() {
-  return Boolean(getStoredVscodeVersion())
+  try {
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    // 检查是否配置了主题CSS文件
+    return customCssImports.some(importPath => 
+      importPath.includes('woodfish-theme.css')
+    )
+  } catch (error) {
+    console.error('检查主题安装状态时出错:', error)
+    return false
+  }
 }
 
 /**
  * 初始化版本检查
- * 当 VSCode 更新时自动重新应用主题
+ * 当 VSCode 更新时提示用户重新配置主题
  */
 function initializeVersionCheck() {
   try {
     const currentVersion = vscode.version.split('-')[0]
     const storedVersion = getStoredVscodeVersion()
     
-    // 如果版本不匹配且之前安装过主题，则自动重新应用
+    // 如果版本不匹配且之前安装过主题，则提示用户重新配置
     if (currentVersion !== storedVersion && wasThemeInstalled()) {
-      console.log('检测到 VSCode 版本更新，自动重新应用主题')
-      applyTheme()
+      console.log('检测到 VSCode 版本更新，提示用户重新配置主题')
+      showInfoMessage('检测到VSCode版本更新，建议重新启用Woodfish主题以确保兼容性')
     }
   } catch (error) {
     console.error('版本检查时出错:', error)
@@ -1005,14 +841,13 @@ function toggleGlowEffects() {
       .then(() => {
         const statusMessage = newGlowState ? '发光效果已开启' : '发光效果已关闭'
         
-        // 如果主题已启用，立即重新应用主题
-        if (wasThemeInstalled()) {
-          console.log('主题已安装，立即重新应用主题')
-          // 立即重新应用主题，不等待配置监听器
-          applyTheme()
-          showReloadPrompt(`${statusMessage}！VSCode 需要重新加载以应用更改。`)
+        if (newGlowState) {
+          // 开启发光效果：重新应用主题
+          showInfoMessage(`${statusMessage}！请通过Custom CSS扩展重新加载以查看效果。`)
         } else {
-          showInfoMessage(`${statusMessage}！请先启用 Woodfish 主题以查看效果。`)
+          // 关闭发光效果：移除发光相关的CSS文件
+          removeGlowEffectFiles()
+          showInfoMessage(`${statusMessage}！发光效果相关文件已移除，请重新加载VSCode。`)
         }
       })
       .catch(error => {
@@ -1041,15 +876,7 @@ function toggleGlassEffect() {
     themeConfiguration.update('enableGlassEffect', newGlassState, vscode.ConfigurationTarget.Global)
       .then(() => {
         const statusMessage = newGlassState ? '毛玻璃效果已开启' : '毛玻璃效果已关闭'
-        
-        // 如果主题已启用，立即重新应用主题
-        if (wasThemeInstalled()) {
-          console.log('主题已安装，立即重新应用主题')
-          applyTheme()
-          showReloadPrompt(`${statusMessage}！VSCode 需要重新加载以应用更改。`)
-        } else {
-          showInfoMessage(`${statusMessage}！请先启用 Woodfish 主题以查看效果。`)
-        }
+        showInfoMessage(`${statusMessage}！请通过Custom CSS扩展重新加载以查看效果。`)
       })
       .catch(error => {
         showErrorMessage(`更新毛玻璃效果配置失败: ${error.message}`)
@@ -1100,6 +927,805 @@ function toggleRainbowCursor() {
 }
 
 /**
+ * 彻底停用Woodfish主题 - 删除所有新旧版本注入文件
+ */
+function completeUninstall() {
+  try {
+    console.log('开始彻底停用Woodfish主题...')
+    
+    // 显示确认对话框
+    const confirmAction = '确认停用'
+    const cancelAction = '取消'
+    
+    vscode.window
+      .showWarningMessage(
+        '[Woodfish Theme] 此操作将彻底移除所有Woodfish主题相关文件和配置，包括新旧版本的所有注入文件。是否继续？',
+        confirmAction,
+        cancelAction
+      )
+      .then(selection => {
+        if (selection === confirmAction) {
+          performCompleteUninstall()
+        } else {
+          showInfoMessage('已取消彻底停用操作')
+        }
+      })
+    
+  } catch (error) {
+    showErrorMessage(`彻底停用失败: ${error.message}`)
+    console.error('彻底停用时出错:', error)
+  }
+}
+
+/**
+ * 执行彻底卸载操作
+ */
+function performCompleteUninstall() {
+  try {
+    console.log('执行彻底卸载操作...')
+    
+    // 1. 移除新版本的Custom CSS配置
+    removeAllWoodfishCssFromCustomCss()
+    
+    // 2. 清理旧版本的HTML注入文件
+    cleanOldHtmlInjections()
+    
+    // 3. 专门清理光标相关配置
+    cleanCursorSpecificConfiguration()
+    
+    // 4. 清理扩展配置
+    cleanExtensionConfiguration()
+    
+    // 4. 检查并清理其他可能的CSS注入
+    checkAndCleanOtherCssExtensions()
+    
+    // 5. 强制重置光标样式
+    forceResetCursorStyle()
+    
+    // 6. 提供额外的清理选项
+    offerAdditionalCleanupOptions()
+    
+    // 5. 显示成功消息和重启提示
+    showReloadPrompt('Woodfish主题已彻底停用！所有相关文件和配置已清理，请重新加载VSCode。')
+    
+    console.log('彻底卸载操作完成')
+    
+  } catch (error) {
+    showErrorMessage(`执行彻底卸载失败: ${error.message}`)
+    console.error('执行彻底卸载时出错:', error)
+  }
+}
+
+
+/**
+ * 从Custom CSS配置中移除所有Woodfish相关文件
+ */
+function removeAllWoodfishCssFromCustomCss() {
+  try {
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    console.log('清理Custom CSS配置中的Woodfish相关文件...')
+    console.log(`当前导入列表:`, customCssImports)
+    
+    // 定义所有Woodfish相关的文件路径（更全面的列表）
+    const woodfishRelatedFiles = [
+      // 主要主题文件
+      path.join(__dirname, 'themes', 'woodfish-theme.css'),
+      path.join(__dirname, 'themes', 'woodfish-theme-modular.css'),
+      // 模块文件 - 这些是产生渐变和发光效果的核心文件
+      path.join(__dirname, 'themes', 'modules', 'glow-effects.css'),
+      path.join(__dirname, 'themes', 'modules', 'cursor-animation.css'),
+      path.join(__dirname, 'themes', 'modules', 'transparent-ui.css'),
+      path.join(__dirname, 'themes', 'modules', 'activity-bar.css'),
+      path.join(__dirname, 'themes', 'modules', 'tab-bar.css'),
+      path.join(__dirname, 'themes', 'modules', 'syntax-highlighting.css'),
+      path.join(__dirname, 'themes', 'modules', 'variables.css'),
+      // 自定义CSS文件
+      path.join(__dirname, 'custom-css', 'rainbow-cursor.css'),
+      path.join(__dirname, 'custom-css', 'cursor-loader.css'),
+      // 旧版本可能的文件位置
+      path.join(__dirname, 'themes', 'woodfish-theme.html'),
+      // 添加更多可能的文件路径
+      path.join(__dirname, 'index.css'),
+      path.join(__dirname, 'woodfish theme.json')
+    ]
+    
+    // 构建文件URI列表
+    const woodfishFileUris = woodfishRelatedFiles.map(filePath => {
+      return `file:///${filePath.replace(/\\/g, '/')}`
+    })
+    
+    // 扩展关键词匹配模式 - 更全面的匹配，特别针对光标效果
+    const woodfishKeywords = [
+      'woodfish-theme',
+      'glow-effects',
+      'cursor-animation', 
+      'rainbow-cursor',
+      'woodfish',
+      'syntax-highlighting',
+      'transparent-ui',
+      'activity-bar',
+      'tab-bar',
+      'variables.css',
+      'cursor-loader',
+      // 光标动画相关关键词
+      'bp-animation',
+      'cursor-hue',
+      'rainbow-cursor',
+      'cursor-blink',
+      'cursors-layer',
+      'cursor-secondary',
+      '.cursor',
+      'monaco-editor .cursor',
+      'div.cursor'
+    ]
+    
+    console.log(`要移除的Woodfish相关文件:`, woodfishFileUris)
+    
+    // 更激进的过滤策略 - 移除任何可能相关的配置
+    const filteredImports = customCssImports.filter(importPath => {
+      // 检查是否是Woodfish相关文件（完全匹配）
+      if (woodfishFileUris.some(woodfishUri => importPath === woodfishUri)) {
+        console.log(`找到完全匹配的Woodfish路径，将移除:`, importPath)
+        return false
+      }
+      
+      // 检查路径中是否包含Woodfish相关关键词（更宽松的匹配）
+      if (woodfishKeywords.some(keyword => importPath.toLowerCase().includes(keyword.toLowerCase()))) {
+        console.log(`找到包含Woodfish关键词的路径，将移除:`, importPath)
+        return false
+      }
+      
+      // 检查是否包含在当前扩展目录中的任何CSS文件
+      if (importPath.includes(__dirname.replace(/\\/g, '/')) && importPath.includes('.css')) {
+        console.log(`找到扩展目录中的CSS文件，将移除:`, importPath)
+        return false
+      }
+      
+      return true
+    })
+    
+    const removedCount = customCssImports.length - filteredImports.length
+    console.log(`从Custom CSS中移除了 ${removedCount} 个Woodfish相关配置`)
+    
+    if (removedCount > 0) {
+      config.update('vscode_custom_css.imports', filteredImports, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log('Woodfish相关CSS配置已移除')
+        })
+        .catch(error => {
+          console.error('移除Woodfish CSS配置失败:', error)
+        })
+    } else {
+      console.log('Custom CSS中未找到Woodfish相关配置')
+    }
+    
+    // 额外步骤：清空整个Custom CSS配置以确保完全清理
+    if (customCssImports.length > 0) {
+      console.log('准备清空整个Custom CSS配置以确保完全清理...')
+      vscode.window
+        .showWarningMessage(
+          '[Woodfish Theme] 为确保完全移除所有效果，建议清空整个Custom CSS配置。是否继续？',
+          '清空所有配置',
+          '保持现有配置'
+        )
+        .then(selection => {
+          if (selection === '清空所有配置') {
+            config.update('vscode_custom_css.imports', [], vscode.ConfigurationTarget.Global)
+              .then(() => {
+                showInfoMessage('已清空所有Custom CSS配置')
+              })
+              .catch(error => {
+                showErrorMessage(`清空Custom CSS配置失败: ${error.message}`)
+              })
+          }
+        })
+    }
+    
+  } catch (error) {
+    console.error('清理Custom CSS配置时出错:', error)
+  }
+}
+
+/**
+ * 清理旧版本的HTML注入
+ */
+function cleanOldHtmlInjections() {
+  try {
+    console.log('清理旧版本的HTML注入...')
+    
+    // 获取VSCode工作区HTML文件路径
+    const htmlPath = getWorkbenchHtmlPath()
+    
+    if (!htmlPath || !fs.existsSync(htmlPath)) {
+      console.log('未找到workbench HTML文件，跳过HTML清理')
+      return
+    }
+    
+    try {
+      const htmlContent = fs.readFileSync(htmlPath, 'utf-8')
+      
+      // 清理Woodfish主题相关的style和script标签
+      const cleanedContent = cleanThemeStyles(htmlContent)
+      
+      if (htmlContent !== cleanedContent) {
+        // 备份原始文件
+        const backupPath = htmlPath + '.woodfish-backup'
+        fs.writeFileSync(backupPath, htmlContent)
+        console.log(`已备份原始HTML文件到: ${backupPath}`)
+        
+        // 写入清理后的内容
+        fs.writeFileSync(htmlPath, cleanedContent)
+        console.log('已清理HTML文件中的Woodfish注入内容')
+      } else {
+        console.log('HTML文件中未找到Woodfish注入内容')
+      }
+      
+    } catch (error) {
+      console.error('清理HTML文件时出错:', error)
+    }
+    
+  } catch (error) {
+    console.error('清理旧版本HTML注入时出错:', error)
+  }
+}
+
+/**
+ * 检查并清理其他可能的CSS注入扩展
+ */
+function checkAndCleanOtherCssExtensions() {
+  try {
+    console.log('检查其他可能的CSS注入扩展...')
+    
+    // 检查常见的CSS注入扩展
+    const cssExtensions = [
+      'be5invis.vscode-custom-css',  // Custom CSS and JS Loader
+      'apc-extension.vscode-apc',    // APC Extension
+      'robbowen.vscode-sync-rsync',  // 其他可能修改UI的扩展
+      'ms-vscode.vscode-custom-css'  // Microsoft的Custom CSS
+    ]
+    
+    let foundExtensions = []
+    
+    cssExtensions.forEach(extensionId => {
+      try {
+        const extension = vscode.extensions.getExtension(extensionId)
+        if (extension) {
+          foundExtensions.push(extensionId)
+          console.log(`发现CSS注入扩展: ${extensionId}`)
+        }
+      } catch (error) {
+        console.log(`检查扩展 ${extensionId} 时出错:`, error.message)
+      }
+    })
+    
+    if (foundExtensions.length > 0) {
+      vscode.window
+        .showWarningMessage(
+          `[Woodfish Theme] 发现安装了其他CSS注入扩展：${foundExtensions.join(', ')}。这些扩展可能包含导致残留效果的CSS。是否禁用它们？`,
+          '禁用这些扩展',
+          '保持启用'
+        )
+        .then(selection => {
+          if (selection === '禁用这些扩展') {
+            disableCssExtensions(foundExtensions)
+          }
+        })
+    }
+    
+  } catch (error) {
+    console.error('检查其他CSS注入扩展时出错:', error)
+  }
+}
+
+/**
+ * 禁用CSS注入扩展
+ */
+function disableCssExtensions(extensionIds) {
+  try {
+    console.log('禁用CSS注入扩展:', extensionIds)
+    
+    extensionIds.forEach(extensionId => {
+      try {
+        vscode.commands.executeCommand('workbench.extensions.disableExtension', extensionId)
+          .then(() => {
+            console.log(`已禁用扩展: ${extensionId}`)
+          })
+          .catch(error => {
+            console.error(`禁用扩展 ${extensionId} 失败:`, error)
+          })
+      } catch (error) {
+        console.error(`禁用扩展 ${extensionId} 时出错:`, error)
+      }
+    })
+    
+    showInfoMessage('已请求禁用相关CSS注入扩展，请重新加载VSCode以生效')
+    
+  } catch (error) {
+    console.error('禁用CSS注入扩展时出错:', error)
+  }
+}
+
+/**
+ * 强制重置光标样式
+ */
+function forceResetCursorStyle() {
+  try {
+    console.log('强制重置光标样式...')
+    
+    // 创建并注入重置光标样式的CSS
+    const resetCursorCss = `
+      /* Woodfish主题光标重置样式 */
+      .monaco-editor .cursor,
+      .monaco-editor .cursors-layer .cursor,
+      div.cursor,
+      .cursor {
+        background: none !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+        animation: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        filter: none !important;
+        transform: none !important;
+        transition: none !important;
+        background-size: auto !important;
+        background-position: auto !important;
+      }
+      
+      /* 重置光标动画 */
+      @keyframes bp-animation { 
+        0% { background-position: 0% 0%; } 
+        100% { background-position: 0% 0%; } 
+      }
+      
+      @keyframes rainbow-cursor { 
+        0% { filter: hue-rotate(0deg); } 
+        100% { filter: hue-rotate(0deg); } 
+      }
+      
+      @keyframes cursor-hue { 
+        0% { filter: hue-rotate(0deg); } 
+        100% { filter: hue-rotate(0deg); } 
+      }
+      
+      @keyframes cursor-blink { 
+        0%, 50% { opacity: 1; } 
+        51%, 100% { opacity: 1; } 
+      }
+      
+      /* 重置多光标样式 */
+      .monaco-editor .cursor-secondary {
+        background: #ffffff !important;
+        animation: none !important;
+        box-shadow: none !important;
+      }
+      
+      /* 重置光标悬停效果 */
+      .monaco-editor:hover .cursor {
+        transform: none !important;
+        transition: none !important;
+      }
+      
+      /* 重置输入时的光标效果 */
+      .monaco-editor.focused .cursor {
+        animation-duration: normal !important;
+        box-shadow: none !important;
+      }
+    `
+    
+    // 将重置样式注入到Custom CSS配置中
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    // 创建临时重置文件
+    const resetFilePath = path.join(__dirname, 'cursor-reset.css')
+    fs.writeFileSync(resetFilePath, resetCursorCss)
+    const resetFileUri = `file:///${resetFilePath.replace(/\\/g, '/')}`
+    
+    // 添加到Custom CSS导入列表
+    const newImports = [...customCssImports, resetFileUri]
+    
+    config.update('vscode_custom_css.imports', newImports, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('已注入光标重置样式')
+        showInfoMessage('已强制重置光标样式为默认白色')
+        
+        // 延迟清理重置文件，确保应用后再清理
+        setTimeout(() => {
+          if (fs.existsSync(resetFilePath)) {
+            fs.unlinkSync(resetFilePath)
+            console.log('已清理临时重置文件')
+          }
+        }, 5000)
+      })
+      .catch(error => {
+        console.error('注入光标重置样式失败:', error)
+      })
+    
+  } catch (error) {
+    console.error('强制重置光标样式时出错:', error)
+  }
+}
+
+/**
+ * 提供额外的清理选项
+ */
+function offerAdditionalCleanupOptions() {
+  try {
+    console.log('提供额外的清理选项...')
+    
+    // 询问用户是否需要重置VSCode主题设置
+    const resetThemeAction = '重置VSCode主题设置'
+    const skipAction = '跳过'
+    
+    vscode.window
+      .showInformationMessage(
+        '[Woodfish Theme] 为确保完全移除效果，建议重置VSCode的主题相关设置。是否继续？',
+        resetThemeAction,
+        skipAction
+      )
+      .then(selection => {
+        if (selection === resetThemeAction) {
+          resetVSCodeThemeSettings()
+        }
+      })
+    
+  } catch (error) {
+    console.error('提供额外清理选项时出错:', error)
+  }
+}
+
+/**
+ * 重置VSCode主题设置
+ */
+function resetVSCodeThemeSettings() {
+  try {
+    console.log('重置VSCode主题设置...')
+    
+    const config = vscode.workspace.getConfiguration()
+    
+    // 重置颜色主题
+    config.update('workbench.colorTheme', 'Default Dark+', vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('颜色主题已重置为Default Dark+')
+      })
+      .catch(error => {
+        console.error('重置颜色主题失败:', error)
+      })
+    
+    // 重置文件图标主题
+    config.update('workbench.iconTheme', 'vs-seti', vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('文件图标主题已重置为vs-seti')
+      })
+      .catch(error => {
+        console.error('重置文件图标主题失败:', error)
+      })
+    
+    // 重置产品图标主题
+    config.update('workbench.productIconTheme', 'Default', vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('产品图标主题已重置为Default')
+      })
+      .catch(error => {
+        console.error('重置产品图标主题失败:', error)
+      })
+    
+    showInfoMessage('VSCode主题设置已重置为默认值')
+    
+  } catch (error) {
+    console.error('重置VSCode主题设置时出错:', error)
+  }
+}
+
+/**
+ * 专门清理光标相关配置
+ */
+function cleanCursorSpecificConfiguration() {
+  try {
+    console.log('开始专门清理光标相关配置...')
+    
+    const config = vscode.workspace.getConfiguration()
+    
+    // 1. 重置VSCode光标设置
+    const cursorSettings = [
+      'editor.cursorStyle',
+      'editor.cursorWidth',
+      'editor.cursorBlinking',
+      'editor.cursorSmoothCaretAnimation',
+      'editor.cursorSurroundingLines'
+    ]
+    
+    cursorSettings.forEach(setting => {
+      config.update(setting, undefined, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log(`已重置光标设置: ${setting}`)
+        })
+        .catch(error => {
+          console.error(`重置光标设置 ${setting} 失败:`, error)
+        })
+    })
+    
+    // 2. 清理工作区级别的光标配置
+    const workspaceCursorSettings = [
+      'workbench.colorCustomizations'
+    ]
+    
+    workspaceCursorSettings.forEach(setting => {
+      config.update(setting, undefined, vscode.ConfigurationTarget.Workspace)
+        .then(() => {
+          console.log(`已清理工作区设置: ${setting}`)
+        })
+        .catch(error => {
+          console.error(`清理工作区设置 ${setting} 失败:`, error)
+        })
+    })
+    
+    // 3. 重置颜色自定义中的光标颜色
+    const colorCustomizations = config.get('workbench.colorCustomizations', {})
+    const cleanedColorCustomizations = {}
+    
+    // 只保留非光标相关的颜色设置
+    Object.keys(colorCustomizations).forEach(key => {
+      if (!key.toLowerCase().includes('cursor')) {
+        cleanedColorCustomizations[key] = colorCustomizations[key]
+      } else {
+        console.log(`移除了光标颜色设置: ${key}`)
+      }
+    })
+    
+    config.update('workbench.colorCustomizations', cleanedColorCustomizations, vscode.ConfigurationTarget.Global)
+      .then(() => {
+        console.log('已清理光标颜色自定义')
+      })
+      .catch(error => {
+        console.error('清理光标颜色自定义失败:', error)
+      })
+    
+    // 4. 清理特定于Woodfish主题的配置
+    const woodfishSpecificSettings = [
+      'woodfishTheme.enableRainbowCursor',
+      'woodfishTheme.enableGlowEffects',
+      'woodfishTheme.enableGlassEffect'
+    ]
+    
+    woodfishSpecificSettings.forEach(setting => {
+      config.update(setting, false, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log(`已禁用Woodfish设置: ${setting}`)
+        })
+        .catch(error => {
+          console.error(`禁用Woodfish设置 ${setting} 失败:`, error)
+        })
+    })
+    
+    console.log('光标相关配置清理完成')
+    
+  } catch (error) {
+    console.error('清理光标相关配置时出错:', error)
+  }
+}
+
+/**
+ * 清理扩展配置
+ */
+function cleanExtensionConfiguration() {
+  try {
+    console.log('清理扩展配置...')
+    
+    if (!extensionContext) return
+    
+    // 清理版本信息
+    extensionContext.globalState.update(EXTENSION_CONFIG.versionKey, undefined)
+    
+    // 清理用户拒绝安装依赖插件的记录
+    extensionContext.globalState.update(`declined-${DEPENDENCY_EXTENSION.id}`, undefined)
+    
+    console.log('扩展配置已清理')
+    
+  } catch (error) {
+    console.error('清理扩展配置时出错:', error)
+  }
+}
+
+/**
+ * 获取VSCode工作区HTML文件路径（兼容旧版本）
+ */
+function getWorkbenchHtmlPath() {
+  try {
+    const appDirectory = require.main ? path.dirname(require.main.filename) : globalThis._VSCODE_FILE_ROOT
+    const baseDirectory = path.join(appDirectory, 'vs', 'code')
+    
+    const possiblePaths = [
+      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.html'),
+      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench-apc-extension.html'),
+      path.join(baseDirectory, 'electron-sandbox', 'workbench', 'workbench.esm.html'),
+      path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.esm.html'),
+      path.join(baseDirectory, 'electron-browser', 'workbench', 'workbench.html')
+    ]
+    
+    for (const htmlPath of possiblePaths) {
+      if (fs.existsSync(htmlPath)) {
+        return htmlPath
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('获取workbench HTML路径时出错:', error)
+    return null
+  }
+}
+
+/**
+ * 清理HTML文件中的主题样式（兼容旧版本）
+ */
+function cleanThemeStyles(htmlContent) {
+  try {
+    console.log('开始清理HTML文件中的主题样式...')
+    
+    let cleanedContent = htmlContent
+    let removedCount = 0
+    
+    // 1. 清理Woodfish主题相关的style标签（标准方式）
+    const styleRegex = new RegExp(
+      `<style[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>[\\s\\S]*?</style>`,
+      'gi'
+    )
+    
+    // 2. 清理Woodfish主题相关的script标签
+    const scriptRegex = new RegExp(
+      `<script[^>]*${EXTENSION_CONFIG.tagAttribute}[^>]*>[\\s\\S]*?</script>`,
+      'gi'
+    )
+    
+    // 3. 清理所有包含woodfish关键词的style标签（更激进的清理）
+    const woodfishStyleRegex = /<style[^>]*(?:woodfish|glow|gradient|rainbow|cursor|animation)[^>]*>[\s\S]*?<\/style>/gi
+    
+    // 4. 清理所有包含woodfish关键词的script标签
+    const woodfishScriptRegex = /<script[^>]*(?:woodfish|glow|gradient|rainbow|cursor|animation)[^>]*>[\s\S]*?<\/script>/gi
+    
+    // 5. 清理内联样式中包含woodfish相关内容的标签
+    const inlineStyleRegex = /<[^>]+style="[^"]*(?:woodfish|glow|gradient|rainbow|cursor|animation)[^"]*"[^>]*>/gi
+    
+    // 6. 专门清理光标相关的CSS（最激进的清理）
+    const cursorCssRegex = /[^{}]*\.cursor[^{}]*\{[^{}]*\}/gi
+    const cursorAnimationRegex = /@keyframes\s+(?:rainbow-cursor|bp-animation|cursor-hue|cursor-blink)[^{]*\{[^{}]*\}/gi
+    const cursorDivRegex = /div\.cursor[^{]*\{[^{}]*\}/gi
+    const monacoCursorRegex = /\.monaco-editor[^{]*\.cursor[^{]*\{[^{}]*\}/gi
+    
+    // 应用所有清理规则
+    const rules = [
+      { name: '标准style标签', regex: styleRegex },
+      { name: '标准script标签', regex: scriptRegex },
+      { name: 'woodfish相关style标签', regex: woodfishStyleRegex },
+      { name: 'woodfish相关script标签', regex: woodfishScriptRegex },
+      { name: '内联样式', regex: inlineStyleRegex },
+      { name: '光标CSS规则', regex: cursorCssRegex },
+      { name: '光标动画关键帧', regex: cursorAnimationRegex },
+      { name: 'div.cursor规则', regex: cursorDivRegex },
+      { name: 'monaco光标规则', regex: monacoCursorRegex }
+    ]
+    
+    rules.forEach(rule => {
+      const beforeLength = cleanedContent.length
+      cleanedContent = cleanedContent.replace(rule.regex, (match) => {
+        removedCount++
+        console.log(`移除了${rule.name}: ${match.substring(0, 150)}...`)
+        return ''
+      })
+      const afterLength = cleanedContent.length
+      if (beforeLength !== afterLength) {
+        console.log(`${rule.name}清理完成，移除了 ${beforeLength - afterLength} 字符`)
+      }
+    })
+    
+    // 7. 清理任何包含CSS变量的内容（针对渐变和发光效果）
+    const cssVarsRegex = /(?:--gradient-|--glow-|text-shadow:\s*0\s+0\s+\d+px\s+currentColor)[^;]*;?/gi
+    cleanedContent = cleanedContent.replace(cssVarsRegex, (match) => {
+      console.log(`移除了CSS变量: ${match}`)
+      return ''
+    })
+    
+    // 8. 清理linear-gradient相关内容
+    const gradientRegex = /linear-gradient\([^)]*\)/gi
+    cleanedContent = cleanedContent.replace(gradientRegex, (match) => {
+      if (match.includes('cursor') || match.includes('rainbow') || match.includes('#ff')) {
+        console.log(`移除了渐变效果: ${match}`)
+        return 'transparent'
+      }
+      return match
+    })
+    
+    // 9. 清理background-size中光标相关的内容
+    const bgSizeRegex = /background-size:\s*\d+%\s*\d+%/gi
+    cleanedContent = cleanedContent.replace(bgSizeRegex, (match) => {
+      if (cleanedContent.includes('cursor') && (match.includes('800%') || match.includes('1200%'))) {
+        console.log(`移除了光标背景尺寸: ${match}`)
+        return 'background-size: auto'
+      }
+      return match
+    })
+    
+    console.log(`HTML样式清理完成，共移除 ${removedCount} 处内容`)
+    
+    return cleanedContent
+  } catch (error) {
+    console.error('清理主题样式时出错:', error)
+    return htmlContent
+  }
+}
+
+/**
+ * 移除发光效果相关的CSS文件
+ */
+function removeGlowEffectFiles() {
+  try {
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    console.log('开始移除发光效果相关文件...')
+    console.log(`当前导入列表:`, customCssImports)
+    
+    // 定义发光效果相关的文件路径
+    const glowRelatedFiles = [
+      // 主要发光效果文件
+      path.join(__dirname, 'themes', 'modules', 'glow-effects.css'),
+      // 主主题文件（包含发光效果）
+      path.join(__dirname, 'themes', 'woodfish-theme.css'),
+      // 模块化主题文件（导入发光效果）
+      path.join(__dirname, 'themes', 'woodfish-theme-modular.css')
+    ]
+    
+    // 构建文件URI列表
+    const glowFileUris = glowRelatedFiles.map(filePath => {
+      return `file:///${filePath.replace(/\\/g, '/')}`
+    })
+    
+    console.log(`要移除的发光效果文件:`, glowFileUris)
+    
+    // 过滤掉发光效果相关的配置
+    const filteredImports = customCssImports.filter(importPath => {
+      // 检查是否是发光效果相关文件
+      const isGlowRelated = glowFileUris.some(glowUri => importPath === glowUri) ||
+                           // 检查路径中是否包含发光效果相关关键词
+                           importPath.includes('glow-effects.css') ||
+                           importPath.includes('woodfish-theme.css') ||
+                           importPath.includes('woodfish-theme-modular.css')
+      
+      if (isGlowRelated) {
+        console.log(`找到发光效果相关路径，将移除:`, importPath)
+        return false
+      }
+      
+      return true
+    })
+    
+    const removedCount = customCssImports.length - filteredImports.length
+    console.log(`移除了 ${removedCount} 个发光效果相关配置`)
+    
+    if (removedCount > 0) {
+      config.update('vscode_custom_css.imports', filteredImports, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log('发光效果相关CSS配置已移除')
+        })
+        .catch(error => {
+          console.error('移除发光效果配置失败:', error)
+          showErrorMessage(`移除发光效果配置失败: ${error.message}`)
+        })
+    } else {
+      console.log('未找到发光效果相关配置')
+    }
+    
+  } catch (error) {
+    console.error('移除发光效果文件时出错:', error)
+    showErrorMessage(`移除发光效果文件失败: ${error.message}`)
+  }
+}
+
+/**
  * 移除彩色光标配置
  */
 function removeRainbowCursorConfig() {
@@ -1107,12 +1733,32 @@ function removeRainbowCursorConfig() {
     const config = vscode.workspace.getConfiguration()
     const customCssImports = config.get('vscode_custom_css.imports', [])
     
-    // 过滤掉彩色光标相关的配置
-    const filteredImports = customCssImports.filter(importPath => 
-      !importPath.includes('rainbow-cursor.css')
-    )
+    // 构建彩色光标 CSS 文件的路径（用于精确匹配）
+    const rainbowCursorPath = path.join(__dirname, 'custom-css', 'rainbow-cursor.css')
+    const fileUri = `file:///${rainbowCursorPath.replace(/\\/g, '/')}`
     
-    if (filteredImports.length !== customCssImports.length) {
+    console.log(`尝试移除彩色光标配置，当前导入列表:`, customCssImports)
+    console.log(`目标移除路径:`, fileUri)
+    
+    // 过滤掉彩色光标相关的配置 - 使用更精确的匹配
+    const filteredImports = customCssImports.filter(importPath => {
+      // 完全匹配文件URI
+      if (importPath === fileUri) {
+        console.log(`找到完全匹配的路径，将移除:`, importPath)
+        return false
+      }
+      // 备用匹配：检查是否包含彩虹光标文件标识
+      if (importPath.includes('rainbow-cursor.css')) {
+        console.log(`找到包含彩虹光标标识的路径，将移除:`, importPath)
+        return false
+      }
+      return true
+    })
+    
+    const removedCount = customCssImports.length - filteredImports.length
+    console.log(`移除了 ${removedCount} 个彩色光标配置`)
+    
+    if (removedCount > 0) {
       config.update('vscode_custom_css.imports', filteredImports, vscode.ConfigurationTarget.Global)
         .then(() => {
           console.log('彩色光标配置已移除')
@@ -1123,6 +1769,7 @@ function removeRainbowCursorConfig() {
           showErrorMessage(`移除彩色光标配置失败: ${error.message}`)
         })
     } else {
+      console.log('未找到彩色光标配置，可能已经被移除')
       showInfoMessage('彩色光标配置未找到或已移除')
     }
   } catch (error) {
@@ -1144,30 +1791,13 @@ function registerCommands() {
       () => {
         console.log('执行启用主题命令')
         
-        // 确保发光效果配置为开启状态
-        const themeConfiguration = vscode.workspace.getConfiguration(EXTENSION_CONFIG.configSection)
-        const currentGlowState = themeConfiguration.get('enableGlowEffects', false)
+        // 应用主题（通过Custom CSS扩展）
+        applyTheme()
         
-        console.log(`当前发光效果状态: ${currentGlowState}`)
-        
-        // 强制设置发光效果为开启
-        themeConfiguration.update('enableGlowEffects', true, vscode.ConfigurationTarget.Global)
-          .then(async () => {
-            console.log('发光效果已强制开启')
-            // 应用主题（此时发光效果已确保开启）
-            applyTheme()
-            
-          })
-          .catch(error => {
-            console.error('设置发光效果失败:', error)
-            // 即使设置失败，也尝试应用主题
-            applyTheme()
-            
-            // 仍然尝试配置彩色光标
-            setTimeout(() => {
-              autoConfigureRainbowCursor()
-            }, 1000)
-          })
+        // 配置彩色光标
+        setTimeout(() => {
+          autoConfigureRainbowCursor()
+        }, 1000)
       }
     )
     
@@ -1216,6 +1846,15 @@ function registerCommands() {
       }
     )
     
+    // 彻底停用主题命令
+    const completeUninstallCommand = vscode.commands.registerCommand(
+      'woodfish-theme.completeUninstall',
+      () => {
+        console.log('执行彻底停用Woodfish主题命令')
+        completeUninstall()
+      }
+    )
+    
     // 注册到扩展上下文
     extensionContext.subscriptions.push(
       enableCommand, 
@@ -1223,7 +1862,8 @@ function registerCommands() {
       toggleGlowCommand,
       autoConfigureRainbowCursorCommand,
       toggleGlassEffectCommand,
-      toggleRainbowCursorCommand
+      toggleRainbowCursorCommand,
+      completeUninstallCommand
     )
     
     console.log('主题命令注册成功')
@@ -1246,42 +1886,19 @@ function registerConfigurationListener() {
       // 检查是否是发光效果配置的变化
       if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableGlowEffects`)) {
         console.log('配置监听器检测到发光效果配置变化')
-        
-        // 检查主题是否已经启用
-        if (wasThemeInstalled()) {
-          console.log('主题已安装，配置监听器跳过重新应用（由toggleGlowEffects直接处理）')
-          // 注意：现在由 toggleGlowEffects() 函数直接处理主题重新应用
-          // 这里不再重复应用，避免双重处理
-        } else {
-          console.log('主题未安装，配置监听器无需处理')
-        }
+        showInfoMessage('发光效果配置已更新，请通过Custom CSS扩展重新加载以查看效果')
       }
       
       // 检查是否是毛玻璃效果配置的变化
       if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableGlassEffect`)) {
         console.log('配置监听器检测到毛玻璃效果配置变化')
-        
-        if (wasThemeInstalled()) {
-          console.log('主题已安装，配置监听器跳过重新应用（由toggleGlassEffect直接处理）')
-        } else {
-          console.log('主题未安装，配置监听器无需处理')
-        }
+        showInfoMessage('毛玻璃效果配置已更新，请通过Custom CSS扩展重新加载以查看效果')
       }
       
       // 检查是否是彩色光标配置的变化
       if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.enableRainbowCursor`)) {
         console.log('配置监听器检测到彩色光标配置变化')
         // 彩色光标的处理由 toggleRainbowCursor() 函数直接处理
-      }
-      
-      // 监听其他可能的配置变化（如自定义样式）
-      if (event.affectsConfiguration(`${EXTENSION_CONFIG.configSection}.customStyles`)) {
-        console.log('检测到自定义样式配置变化，重新应用主题')
-        
-        if (wasThemeInstalled()) {
-          // 立即重新应用主题以反映自定义样式变化
-          applyTheme()
-        }
       }
     })
     
@@ -1317,6 +1934,11 @@ function activate(context) {
     // 检查依赖插件
     checkDependencyExtension()
     
+    // 延迟验证CSS配置（避免与其他扩展冲突）
+    setTimeout(() => {
+      validateAndCleanupCssImports()
+    }, 5000)
+    
     console.log('Woodfish Theme 扩展已成功激活')
     
     // 显示激活消息（仅在开发模式下）
@@ -1342,6 +1964,82 @@ function deactivate() {
     
   } catch (error) {
     console.error('停用扩展时出错:', error)
+  }
+}
+
+// ==================== CSS配置验证和清理函数 ====================
+
+/**
+ * 验证和清理CSS导入配置
+ * 移除重复项和不存在的文件路径
+ */
+function validateAndCleanupCssImports() {
+  try {
+    const config = vscode.workspace.getConfiguration()
+    const customCssImports = config.get('vscode_custom_css.imports', [])
+    
+    if (!customCssImports || customCssImports.length === 0) {
+      return
+    }
+    
+    console.log('开始验证和清理CSS导入配置...')
+    console.log(`当前配置数量: ${customCssImports.length}`)
+    
+    // 去重和验证
+    const validImports = []
+    const seenPaths = new Set()
+    
+    for (const importPath of customCssImports) {
+      if (!importPath || typeof importPath !== 'string') {
+        console.log(`跳过无效路径:`, importPath)
+        continue
+      }
+      
+      // 跳过重复路径
+      if (seenPaths.has(importPath)) {
+        console.log(`跳过重复路径:`, importPath)
+        continue
+      }
+      
+      // 验证文件是否存在（仅对本地文件路径）
+      if (importPath.startsWith('file:///')) {
+        try {
+          const filePath = importPath.replace('file:///', '')
+          const normalizedPath = filePath.replace(/\//g, '\\') // Windows路径转换
+          const fullPath = path.isAbsolute(normalizedPath) ? normalizedPath : path.join(__dirname, normalizedPath)
+          
+          if (!fs.existsSync(fullPath)) {
+            console.log(`文件不存在，将移除:`, importPath)
+            console.log(`尝试访问的路径:`, fullPath)
+            continue
+          }
+        } catch (error) {
+          console.log(`验证文件存在性时出错，保留路径:`, importPath, error.message)
+        }
+      }
+      
+      validImports.push(importPath)
+      seenPaths.add(importPath)
+    }
+    
+    const removedCount = customCssImports.length - validImports.length
+    
+    if (removedCount > 0) {
+      console.log(`清理完成: 移除了 ${removedCount} 个无效配置，保留了 ${validImports.length} 个有效配置`)
+      
+      config.update('vscode_custom_css.imports', validImports, vscode.ConfigurationTarget.Global)
+        .then(() => {
+          console.log('CSS导入配置已更新')
+        })
+        .catch(error => {
+          console.error('更新CSS配置失败:', error)
+        })
+    } else {
+      console.log('所有配置都有效，无需清理')
+    }
+    
+  } catch (error) {
+    console.error('验证CSS配置时出错:', error)
   }
 }
 
